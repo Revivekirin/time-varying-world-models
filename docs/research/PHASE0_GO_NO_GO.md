@@ -30,3 +30,10 @@ gates now PASS by user execution. Earlier unresolved installation and task-shape
 entries are superseded by PHASE0_TEST_RESULTS.md updates. Model/planner, replay
 sampler, learner, checkpoint and full memory/runtime gates remain unresolved.
 Phase0 PARTIAL; Phase1 not ready.
+
+## Learner gates update
+
+Both tasks now pass model/planner, actual replay sampling,8-update learner smoke,
+Polyak target check and checkpoint/frozen-inference tests. Remaining next gates:
+independent frozen rollout evaluation and device-wide memory evidence. No competent
+nominal policy established. See latest PHASE0_TEST_RESULTS and archived reports.

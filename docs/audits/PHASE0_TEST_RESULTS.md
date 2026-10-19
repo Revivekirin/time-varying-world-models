@@ -158,3 +158,23 @@ and8 additional updates, same settings and fresh output push-learner-002. PickCu
 initial learner budget remains250/8. This is a harness correction, not tuning.
 Cumulative executed transitions450 and learner updates8 before retry; source-only
 synthetic sampler fixtures and constructor physics excluded from this count.
+
+## Both learner smoke gates passed
+
+User-supplied reports: push-learner-002 and pick-learner-001 PASS;20/20 unit
+tests pass in3.571s. Each task250 transitions,1250 step-derived substeps,6 resets,
+8 updates. C,D,E/F,G,target Polyak,H all pass. Checkpoint save/reload and seeded
+frozen inference succeeded. Actual reports preserved in reports/phase0-learner-evidence.json.
+
+Push:14.506s wall, first planner143.73ms, later mean35.69ms;8-update rate5.121/s
+includes1.339s first-update warmup. Pick:15.059s wall, first planner70.77ms;
+8-update rate5.087/s includes1.311s first-update warmup. All reported losses/gradient
+norms finite. No competence inference from the loss decrease or checkpoint.
+PyTorch peak allocated/reserved:Push292948992/360710144 bytes;
+Pick293184512/362807296 bytes. SAPIEN native memory is excluded.
+
+Including failed Push attempt, cumulative950 transitions,4750 step-derived
+substeps,24 learner updates. These totals include the explicitly bounded retry;
+the original manifest totals did not include that diagnostic rerun. Independent
+frozen rollout evaluation and device-wide GPU memory telemetry remain pending.
+Phase0 PARTIAL; Phase1 not yet ready.

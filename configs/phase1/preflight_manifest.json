@@ -1,0 +1,30 @@
+{
+  "scope": "Compatibility only, never a 10000-transition pilot",
+  "tasks": ["PushCube-v1", "PickCube-v1"],
+  "per_task": {
+    "environment_count": 1,
+    "constructor_resets": 1,
+    "explicit_resets": 3,
+    "maximum_environment_transitions": 100,
+    "maximum_step_derived_physics_substeps": 500,
+    "physical_optimizer_updates": 3,
+    "logical_updates_after_restore": 2,
+    "batch_size": 256,
+    "model_size": 5,
+    "replay_capacity_rows": 300000,
+    "internal_timeout_seconds": 600,
+    "external_timeout_seconds": 630,
+    "kill_grace_seconds": 15,
+    "gpu_budget_gib": 20,
+    "minimum_remaining_cuda_memory_gib": 4,
+    "minimum_free_storage_gib": 30,
+    "artifacts": ["report.json", "resolved_config.json", "learner-envelope.pt"],
+    "stop_conditions": ["invalid Phase0 evidence", "source mismatch", "contract mismatch", "nonfinite loss/gradient", "OOM", "memory/storage budget exceeded", "timeout", "resumed next-update mismatch"]
+  },
+  "commands": [
+    "timeout --signal=TERM --kill-after=15s 630s python scripts/phase1_preflight.py --task PushCube-v1 --contract results/push-contract-002/report.json --smoke results/push-learner-002 --evaluation results/push-eval-001/report.json --out results/phase1-push-preflight-001",
+    "timeout --signal=TERM --kill-after=15s 630s python scripts/phase1_preflight.py --task PickCube-v1 --contract results/pick-contract-001/report.json --smoke results/pick-learner-001 --evaluation results/pick-eval-001/report.json --out results/phase1-pick-preflight-001"
+  ],
+  "launch_authorization": false,
+  "notes": ["GPU telemetry sampled concurrently every approximately 0.2s; a sampled device peak can miss brief spikes.", "Uses original model and objectives. No shifts or history context.", "Same-process learner restoration is tested here. Full collector and fresh-process resume are separate unresolved launch gates."]
+}
