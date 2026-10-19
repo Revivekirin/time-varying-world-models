@@ -1,0 +1,11 @@
+{
+  "model_size": 5,
+  "episodic": true,
+  "compile": false,
+  "batch_size": 16,
+  "steps": 4096,
+  "buffer_size": 4096,
+  "seed": 1,
+  "enable_wandb": false,
+  "save_video": false
+}

@@ -1,0 +1,9 @@
+{
+  "task": "PickCube-v1",
+  "robot_uids": "panda",
+  "obs_mode": "state",
+  "control_mode": "pd_joint_delta_pos",
+  "reward_mode": "normalized_dense",
+  "num_envs": 1,
+  "action_repeat": 1
+}

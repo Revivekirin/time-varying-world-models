@@ -1,0 +1,203 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "scope": "Phase 0 only; user runs remotely",
+  "runs": [
+    {
+      "task": "PushCube-v1",
+      "tests": "A B",
+      "command": "timeout --signal=TERM --kill-after=15s 330s python scripts/smoke.py --task PushCube-v1 --stage contract --out results/push-contract-001",
+      "num_envs": 1,
+      "explicit_reset_budget": 4,
+      "constructor_resets": "native constructor also resets once; excluded from explicit counter",
+      "transition_budget": 100,
+      "physics_substep_budget": 500,
+      "learner_update_budget": 0,
+      "timeout_seconds": 300,
+      "external_timeout_seconds": 330,
+      "kill_grace_seconds": 15,
+      "artifacts": [
+        "results/push-contract-001/report.json"
+      ],
+      "prerequisites": "reviewed installed dependencies + pip check + all unit tests; source pins match",
+      "stop_conditions": [
+        "timeout",
+        "OOM",
+        "NaN/Inf",
+        "source drift",
+        "contract mismatch",
+        "invalid bounds",
+        "missing native boundary",
+        "checkpoint mismatch",
+        "episode too short for replay"
+      ],
+      "failure_policy": "stop affected gate; retain report; no retries, tuning, or budget growth"
+    },
+    {
+      "task": "PushCube-v1",
+      "tests": "C D E F G H I",
+      "command": "timeout --signal=TERM --kill-after=15s 930s python scripts/smoke.py --task PushCube-v1 --stage learner --contract results/push-contract-001/report.json --out results/push-learner-001",
+      "num_envs": 1,
+      "explicit_reset_budget": 6,
+      "constructor_resets": "native constructor also resets once; excluded from explicit counter",
+      "transition_budget": 250,
+      "physics_substep_budget": 1250,
+      "learner_update_budget": 8,
+      "timeout_seconds": 900,
+      "external_timeout_seconds": 930,
+      "kill_grace_seconds": 15,
+      "artifacts": [
+        "results/push-learner-001/report.json",
+        "results/push-learner-001/resolved_config.json",
+        "results/push-learner-001/agent.pt",
+        "results/push-learner-001/rng.pt"
+      ],
+      "prerequisites": "reviewed installed dependencies + pip check + all unit tests; same-task contract PASS",
+      "stop_conditions": [
+        "timeout",
+        "OOM",
+        "NaN/Inf",
+        "source drift",
+        "contract mismatch",
+        "invalid bounds",
+        "missing native boundary",
+        "checkpoint mismatch",
+        "episode too short for replay"
+      ],
+      "failure_policy": "stop affected gate; retain report; no retries, tuning, or budget growth"
+    },
+    {
+      "task": "PushCube-v1",
+      "tests": "H independent frozen evaluation",
+      "command": "timeout --signal=TERM --kill-after=15s 930s python scripts/evaluate.py --smoke results/push-learner-001 --out results/push-eval-001",
+      "num_envs": 1,
+      "explicit_reset_budget": 3,
+      "constructor_resets": "native constructor also resets once; excluded from explicit counter",
+      "transition_budget": 100,
+      "physics_substep_budget": 500,
+      "learner_update_budget": 0,
+      "timeout_seconds": 900,
+      "external_timeout_seconds": 930,
+      "kill_grace_seconds": 15,
+      "artifacts": [
+        "results/push-eval-001/report.json"
+      ],
+      "prerequisites": "reviewed installed dependencies + pip check + all unit tests; same-task learner PASS",
+      "stop_conditions": [
+        "timeout",
+        "OOM",
+        "NaN/Inf",
+        "source drift",
+        "contract mismatch",
+        "invalid bounds",
+        "missing native boundary",
+        "checkpoint mismatch",
+        "episode too short for replay"
+      ],
+      "failure_policy": "stop affected gate; retain report; no retries, tuning, or budget growth"
+    },
+    {
+      "task": "PickCube-v1",
+      "tests": "A B",
+      "command": "timeout --signal=TERM --kill-after=15s 330s python scripts/smoke.py --task PickCube-v1 --stage contract --out results/pick-contract-001",
+      "num_envs": 1,
+      "explicit_reset_budget": 4,
+      "constructor_resets": "native constructor also resets once; excluded from explicit counter",
+      "transition_budget": 100,
+      "physics_substep_budget": 500,
+      "learner_update_budget": 0,
+      "timeout_seconds": 300,
+      "external_timeout_seconds": 330,
+      "kill_grace_seconds": 15,
+      "artifacts": [
+        "results/pick-contract-001/report.json"
+      ],
+      "prerequisites": "reviewed installed dependencies + pip check + all unit tests; source pins match",
+      "stop_conditions": [
+        "timeout",
+        "OOM",
+        "NaN/Inf",
+        "source drift",
+        "contract mismatch",
+        "invalid bounds",
+        "missing native boundary",
+        "checkpoint mismatch",
+        "episode too short for replay"
+      ],
+      "failure_policy": "stop affected gate; retain report; no retries, tuning, or budget growth"
+    },
+    {
+      "task": "PickCube-v1",
+      "tests": "C D E F G H I",
+      "command": "timeout --signal=TERM --kill-after=15s 930s python scripts/smoke.py --task PickCube-v1 --stage learner --contract results/pick-contract-001/report.json --out results/pick-learner-001",
+      "num_envs": 1,
+      "explicit_reset_budget": 6,
+      "constructor_resets": "native constructor also resets once; excluded from explicit counter",
+      "transition_budget": 250,
+      "physics_substep_budget": 1250,
+      "learner_update_budget": 8,
+      "timeout_seconds": 900,
+      "external_timeout_seconds": 930,
+      "kill_grace_seconds": 15,
+      "artifacts": [
+        "results/pick-learner-001/report.json",
+        "results/pick-learner-001/resolved_config.json",
+        "results/pick-learner-001/agent.pt",
+        "results/pick-learner-001/rng.pt"
+      ],
+      "prerequisites": "reviewed installed dependencies + pip check + all unit tests; same-task contract PASS",
+      "stop_conditions": [
+        "timeout",
+        "OOM",
+        "NaN/Inf",
+        "source drift",
+        "contract mismatch",
+        "invalid bounds",
+        "missing native boundary",
+        "checkpoint mismatch",
+        "episode too short for replay"
+      ],
+      "failure_policy": "stop affected gate; retain report; no retries, tuning, or budget growth"
+    },
+    {
+      "task": "PickCube-v1",
+      "tests": "H independent frozen evaluation",
+      "command": "timeout --signal=TERM --kill-after=15s 930s python scripts/evaluate.py --smoke results/pick-learner-001 --out results/pick-eval-001",
+      "num_envs": 1,
+      "explicit_reset_budget": 3,
+      "constructor_resets": "native constructor also resets once; excluded from explicit counter",
+      "transition_budget": 100,
+      "physics_substep_budget": 500,
+      "learner_update_budget": 0,
+      "timeout_seconds": 900,
+      "external_timeout_seconds": 930,
+      "kill_grace_seconds": 15,
+      "artifacts": [
+        "results/pick-eval-001/report.json"
+      ],
+      "prerequisites": "reviewed installed dependencies + pip check + all unit tests; same-task learner PASS",
+      "stop_conditions": [
+        "timeout",
+        "OOM",
+        "NaN/Inf",
+        "source drift",
+        "contract mismatch",
+        "invalid bounds",
+        "missing native boundary",
+        "checkpoint mismatch",
+        "episode too short for replay"
+      ],
+      "failure_policy": "stop affected gate; retain report; no retries, tuning, or budget growth"
+    }
+  ],
+  "totals": {
+    "max_environment_transitions": 900,
+    "max_physics_substeps": 4500,
+    "max_learner_updates": 16
+  },
+  "notes": [
+    "Replay synthetic D test creates 16 synthetic transitions per task, never environment rollouts and never used for optimization.",
+    "Contract state readback/identity restoration adds no env.step.",
+    "Device-wide SAPIEN memory needs separate nvidia-smi telemetry; torch counters alone are incomplete.",
+    "Internal alarm may be delayed in native calls; external timeout supplies process deadline."
+  ]
+}

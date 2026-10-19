@@ -1,0 +1,14 @@
+{
+  "tdmpc2": {
+    "url": "https://github.com/nicklashansen/tdmpc2.git",
+    "commit": "e9f59321933cbc8e11a002b842adc7d4ffae8ff1"
+  },
+  "tdmpc": {
+    "url": "https://github.com/nicklashansen/tdmpc.git",
+    "commit": "f4d85eca7419039b71bab2234ffc8aca378dd313"
+  },
+  "ManiSkill": {
+    "url": "https://github.com/haosulab/ManiSkill.git",
+    "commit": "62ff3a5896b4d5b4cf0ac4c8d79afe600c9404a3"
+  }
+}
