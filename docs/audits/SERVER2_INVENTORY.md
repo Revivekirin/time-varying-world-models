@@ -58,3 +58,21 @@ tooling is likewise separate. Do not call this a fully hermetic environment.
 Next user execution: verify source pins; generate lock; pip install locked
 artifacts; install editable projects without dependency resolution; pip check;
 CUDA tensor/import checks; all unit tests. No simulation until these pass.
+
+## Installation attempt blocked at lock generation
+
+User log: initial script absent, then retrieved with git pull. Source verification
+passed for all three commits. Lock conversion failed on jinja2 with the old
+combined missing-hash/invalid-URL check. The pasted log does not distinguish
+missing archive SHA256 from an unsupported hash representation or fragment.
+No locked dependency install occurred. Editable mani_skill/tvwm installed with
+--no-deps; pip check listed missing dependencies, and torch import failed.
+User-run tests: 8 pass, 2 tensor tests skipped. No CUDA/simulation evidence.
+
+Fixed converter accepts modern and legacy SHA256 fields and SHA256 URL fragments,
+rejects malformed/conflicting hashes, and offers explicit --hash-missing to
+fingerprint exact HTTPS artifacts lacking SHA256. Such fingerprints are labeled
+as downloaded bytes, not publisher checksums. Original report is preserved.
+Local regression tests: 7 converter tests pass, total15 pass/2 tensor skips.
+Download path tested with a mock, not a remote installation. Retry commands must
+stop on failure; do not continue to editable install/import checks after errors.
