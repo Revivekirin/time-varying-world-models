@@ -1,67 +1,72 @@
-# Phase 1 nominal TD-MPC2 configuration — revised proposal
+# Phase 1 nominal training configuration
 
-This supersedes the Phase1 pilot proposal in the original Phase0 research plan.
-That Phase0 artifact is retained unchanged. There will be NO separate10000-step
-training pilot. Phase1 aims at competent nominal policies, not a loss smoke pass.
-No shifts/history conditioning/online adaptation, nor original TD-MPC baseline.
-Remote execution remains exclusively user-operated.
+## Proposed budget and authorization
 
-| Setting | Proposed value |
-|---|---|
-| Tasks / training seed | PushCube-v1 and PickCube-v1; seed1 each initially |
-| Interaction budget | exactly300000 transitions per task,600000 combined |
-| Model / batch / envs | official TD-MPC2 model_size5 /256 /1 |
-| Observation / actions | state35 or42, normalized8; Panda pd_joint_delta_pos |
-| Reward / horizon / repeat | native normalized_dense /50 /1 |
-| Episode support | episodic=true; terminated masks bootstrap, truncated closes episodes |
-| Replay | upstream Buffer,300000 rows including initial observation rows |
-| Planner | horizon3, iterations6,512 samples,64 elites,24 policy trajectories |
-| Objectives / optimizer | unchanged pinned upstream defaults; discount.95 |
-| Compile | false as in verified Phase0; performance choice, no equation change |
-| Validation / checkpoint cadence | every10000 transitions, first completed episode at/after due point |
-| Full-run deadline | proposed24h/task, includes evaluation/checkpoint overhead; cumulative across resumes |
-| GPU / disk | proposed20GiB device-wide ceiling,4GiB CUDA headroom;30GiB free storage |
+One seed (1) each for PushCube-v1 and PickCube-v1; nominal dynamics only.
+Official pinned TD-MPC2 model_size=5, batch_size=256, environment count=1,
+300,000 actual environment transitions per task. No separate pilot.
+`configs/phase1/nominal.json` is the proposal; executing the full command with
+`--approve-budget 300000` records explicit approval for the task and its limits.
+Mandatory gates must pass first. No remote command is executed by the agent.
 
-Machine-readable proposal: configs/phase1/nominal.json. Not launch approval.
+## VERIFIED upstream compatibility
 
-## VERIFIED upstream cadence, inspected source
+Pinned official online trainer uses zero-based steps, random actions through
+step 1000 inclusive (1,001 transitions), then policy actions. After transition
+1001 it performs 1,000 optimizer updates; subsequent transitions get one update.
+The exact 300,000-transition cap therefore gives 299,999 learner updates.
+The official inclusive `while step <= steps` would collect one extra transition;
+the runner changes only that endpoint and documents it explicitly.
 
-external/tdmpc2/tdmpc2/trainer/online_trainer.py uses zero-based _step.
-Random action while _step<=seed_steps; updates begin after collecting the action
-at _step==seed_steps, with seed_steps optimizer updates, then1 per later step.
-For seed_steps1000 this means1001 random transitions, not1000. Original inclusive
-while _step<=cfg.steps performs300001 transitions when cfg.steps300000 and300000
-updates. Proposed external runner caps collection at300000 (indices0..299999),
-preserving those action/update conditions:1000 burst +298999 later updates =
-299999 learner updates per task. This endpoint change is explicit, not a silent
-cadence correction. src/tvwm/agents/cadence.py has locally passing boundary tests.
+Updates sample only previously completed replay episodes. Current episode enters
+replay after its final update. Rows are o0/NaN placeholders followed by
+(o[t+1], a[t], r[t], terminated[t]); truncation closes episodes but bootstraps.
+Strict upstream sequence sampling and objectives remain unchanged.
 
-Completed episodes enter replay at the subsequent reset boundary upstream.
-Do not train on a reset observation as if it were the terminal next observation.
-Maintain initial NaN sentinel row and native termination/truncation distinction.
-Do not replace termination with success assumptions or force fixed50-step episodes.
-Short completed episodes must not silently be extended or relabeled; SliceSampler
-length handling and early-success prevalence need reporting in full training.
+Native float32 state observations: Push 35, Pick 42; normalized eight-dimensional
+Panda pd_joint_delta_pos actions; normalized_dense rewards; horizon 50;
+100 Hz physics, 20 Hz control, five physics substeps per transition. No repeat.
+The action contract and controller configuration are checked against preflight.
+Episodic termination head is enabled as previously audited. Compile remains false.
 
-## Evaluation/checkpoint policy
+## Collection, validation and selection
 
-Independent validation seeds11001..11020, disjoint from Phase0 seeds10001/10002.
-Evaluate initial policy and at30 checkpoints, at most31000 validation transitions
-per task. Final heldout seeds21001..21100 on validation-selected checkpoint only,
-at most5000 transitions/task. Evaluation does not increment training counters or
-modify replay, optimizer, policy RNG, or training environment state. Use a
-separate process, eval_mode=True, model.eval and no gradients; planner sampling
-remains seeded stochastic. Serial execution is preferred on the3090.
+Training reset seed is 1,000,000 + 100,000 * training_seed + episode_index.
+This explicit per-episode seed schedule enables boundary restart and is disjoint
+from validation seeds 11001–11020. Initial validation and validation at the first
+completed episode boundary at/after every 10,000 transitions; also at exact end.
+Validation runs in a separate process with frozen model and independent RNG.
+Up to 31,000 validation transitions/task are additional to training transitions.
+No validation data enters replay. Success is any success in an episode; terminal
+success is also recorded. Selection orders validation success rate, mean return,
+then earliest checkpoint on ties. Goal progress is initial minus final object-to-
+goal distance (Push XY; Pick XYZ), a diagnostic only; reward is unchanged.
 
-Log success-ever, terminal success, native return, episode length, term/trunc,
-training/evaluation transition counts and episode seed. Goal progress is a metric,
-not reward shaping: Push native cube-goal xy distance, Pick3D cube-goal distance;
-record initial/final/minimum distance, and Pick placement/static criteria.
-Keep metrics out of policy inputs. Select highest validation success fraction,
-then mean return, then earliest checkpoint. Never use heldout or future shift
-results for selection. Latest, best and final remain separate artifacts.
+Latest, interval, final and best models are separate. Best-model.pt always holds
+the selected model; best.pt additionally holds a resumable envelope if the selected
+validation happened after replay initialization. An initial untrained winner has
+only best-model.pt, not an invented initialized replay checkpoint.
+The fixed heldout seeds 21001–21100 are evaluated only after selection and never
+used to select best. One training seed cannot establish across-training-seed stability.
 
-Full-run readiness still requires batch256 results, recorded installed lock,
-collector/fresh-process resume tests, reviewed resource estimates and explicit
-approval of the final300000/task budget. No executable full-training launcher
-is delivered as ready in this revision; the runnable command is preflight only.
+## Restart contract
+
+Checkpoints store model, both optimizers, running scale, planner mean, full replay,
+RNG, transition/update/episode counters, next validation/checkpoint thresholds,
+selection score, evaluation steps, wall time and provenance. Save at episode
+boundaries after all updates and replay insertion. Latest is first saved after
+the first episode, then at interval boundaries and graceful stop. No mid-episode
+simulator state restoration is claimed. Full training initializes new weights;
+preflight/smoke checkpoints are only compatibility evidence.
+
+If the exact end budget cuts an episode, it is not fabricated into a completed
+replay episode. Final records boundary=false and cannot resume. No further
+training beyond the approved cap is supported automatically.
+
+On SIGTERM/SIGINT finish the current episode and save. Hard failures preserve the
+last durable checkpoint. Resume requires --acknowledge-rollback, records the prior
+observed counters and restored counters, and preserves attempt-specific metrics.
+Physical work since the last durable checkpoint may repeat; it never silently
+changes the restored schedule. A wall ledger charges failed attempt time; after
+an unclosed process it conservatively includes downtime until restart. Code,
+config or dependency drift blocks resume; hyperparameters are never auto-adjusted.

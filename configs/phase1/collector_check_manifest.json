@@ -1,0 +1,14 @@
+{
+  "scope": "Episode-boundary restoration and full-run evaluation compatibility; no training pilot",
+  "maximum_transitions_per_task": 250,
+  "optimizer_updates": 0,
+  "collector_episodes": 3,
+  "frozen_evaluation_episodes": 2,
+  "fresh_child_timeout_seconds": 180,
+  "evaluation_child_timeout_seconds": 180,
+  "external_timeout_seconds": 600,
+  "kill_grace_seconds": 15,
+  "success_status": "PASS_COLLECTOR_BOUNDARY",
+  "gate_binding": "SHA256 of implementation/config plus original preflight checkpoint",
+  "full_training_requires_separate_explicit_budget_flag": true
+}

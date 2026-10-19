@@ -1,50 +1,33 @@
 # Phase 1 checkpoint audit
 
-VERIFIED upstream save: model state only, including target Q parameters. It does
-not contain optimizer, replay, running actor-Q scale or collector/RNG counters.
-It cannot be called a resumable training checkpoint. Phase0 model save/reload and
-seeded frozen inference passed; Phase0 snapshots remain unchanged.
+**VERIFIED (user-provided server reports):** both tasks passed
+PASS_LEARNER_RESUME_ONLY in a fresh process. Each restored transitions=100,
+updates=1, episode_index=2 and executed exactly one further batch-256 update,
+matching the reference next loss. This is not full training or simulator restore.
 
-Prepared learner envelope src/tvwm/agents/resume.py stores model, both Adam
-optimizers, running scale, planner mean, upstream replay state_dict and episode
-counter, supplied logical counters, source/config provenance and Python/NumPy/
-CPU/CUDA RNG. Writes temp file, fsync, atomic replace. Loads trusted local files
-only and requires exact provenance. Buffer storage must first be initialized.
+| Task | Preflight envelope SHA256 | Fresh update seconds |
+|---|---|---:|
+| PushCube-v1 | 5c06a8f0e7d6e973b132b38d055068aeefb9ac0ed1b1f585afe6f135430c3b78 | 1.56734 |
+| PickCube-v1 | 0e83eaaff29574b6d49df432a8895c81c3f34f35239966889fb7b1613f938180 | 1.57870 |
 
-UNRESOLVED runtime gate: phase1_preflight saves after one update, performs a
-reference update, restores envelope, repeats next update, compares metrics and
-model state. This verifies same-process learner restoration only. It must pass
-before use, and does not prove collector/fresh-process resume correctness.
+**UNRESOLVED:** the new collector check reuses the actual training collector,
+collects a warm episode, saves an envelope at a boundary, then compares the next
+reference episode to a fresh process loading that envelope. Observations,
+actions, rewards and flags must agree at absolute tolerance 1e-6; counters must
+match exactly. It also exercises the full runner's frozen evaluator on two seeds.
+Maximum 250 simulation transitions/task, zero optimizer updates. This is a
+compatibility check, not a training pilot. Any mismatch fails the launch gate.
+No general bitwise GPU determinism claim follows from a passing check.
 
-Required full-run collector envelope (not yet implemented/verified): completed-
-episode boundary, exact env-transition count, learner count, phase within initial
-1000-update burst, next episode seed/index, training/eval counters, next checkpoint/
-eval due step, best validation score, cumulative wall time and append-only event
-sequence. Save only after the completed episode is inserted and all scheduled
-updates for that transition finish. Resume before next reset using explicit
-per-episode seed; do not pretend native get_state_dict restores elapsed time/RNG.
-Record any physical work lost after last durable checkpoint separately from
-logical resumed counters. No silent counter/schedule reset or redoing the initial
-burst. Validate clean uninterrupted versus fresh-process checkpoint continuation
-at the1000/1001 boundary and a normal episode boundary before launch.
+The gate report binds code/config SHA256 and the original preflight envelope hash.
+Full-run checkpoint metadata records SHA256, counters and replay device; envelope
+provenance binds resolved configuration, sources, dependency lock and packages.
+Only trusted local checkpoint files may be loaded (torch weights_only=False).
 
-Predefined retention: latest resumable checkpoint, best validation checkpoint and
-final snapshot separately. Keep small manifests/hashes/validation records for all
-intervals. Model-only evaluation snapshots may accompany resumable envelopes.
-Disk/quota checks and atomic publication must cover replay snapshots; retain the
-previous latest until replacement succeeds. Final partial episode accounting must
-be explicit, never create a false terminal label to hit a budget.
-
-Each manifest must include task, training seed, source Git hashes, local project
-revision/diff hash, dependency lock hash, resolved config hash, checkpoint hash,
-training/evaluation counters, checkpoint kind, validation metrics and wall time.
-Preflight envelopes are diagnostic only and are not sufficient to launch/resume
-full training until collector and fresh-process gates pass.
-
-## Runtime update
-
-VERIFIED same-process envelope restoration on both tasks: next-update metrics
-matched reference and exact model-state comparison passed. Both optimizer states,
-scale, replay, RNG and counters were included. Fresh-process validation now has
-a separate prepared command requiring zero environment transitions and one update.
-This does not establish full collector resume; do not remove that launch gate.
+**Implemented, runtime UNRESOLVED:** interval/full-run envelope saving and resume,
+separate latest/final, validation best-model and best resumable envelope where
+available. If best is the initial model, best-model.pt is its exact artifact and
+there is no resumable best.pt. Metadata/hash mismatch fails closed, including a
+crash between checkpoint publication and sidecar publication. Use a separately
+verified interval snapshot only through an explicit recovery procedure; do not
+silently substitute checkpoints. Phase 0 artifacts remain untouched.
