@@ -42,3 +42,22 @@ This is operational evaluation evidence, not nominal competence. Dependency pip
 check passed. Free filesystem bytes718346911744. Sampled GPU peak1450MiB occurred
 only during initialization, not batch256 learning; compatibility remains unresolved.
 New bounded retry uses push-preflight002 and initial pick-preflight001 outputs.
+
+## Both batch256 compatibility gates passed
+
+VERIFIED user-provided server2 reports: Push preflight002 and Pick preflight001
+PASS_COMPATIBILITY_ONLY. Each100 transitions/3 physical optimizer calls;
+logical restored count2. Unit suite27/27 passes in3.520s. Checkpoint frozen
+forward, terminated bootstrap mask, finite batch256 forward/backward/optimizer,
+replay300000-row allocation and same-process learner restore all passed.
+Evidence archived in reports/phase1-preflight-evidence.json without changing
+Phase0 files. Independent Phase0 evaluation also verified for Pick: two50-step
+truncated episodes, returns1.463695/1.547711,0/2 successes. No competence claim.
+
+New bounded fresh-process learner audit: scripts/phase1_resume_check.py,
+manifest configs/phase1/resume_check_manifest.json. Per task0 transitions,
+0 simulator constructions,1 batch256 optimizer call,180s internal deadline.
+Checks source/package/lock/checkpoint hashes, empty replay storage restoration,
+counters and next-update metrics against saved uninterrupted reference.
+Prepared and syntax-checked only; remote result pending. Collector continuation
+and full-run runner remain separate incomplete requirements; launch not approved.

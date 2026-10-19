@@ -37,3 +37,19 @@ raise memory ceiling, or auto-relaunch. A budget failure blocks that task.
 Installed package/build lock and active-process provenance must accompany full
 run. Batch256 compatibility test has600s internal/630s external deadline/task,
 max100 transitions and3 optimizer calls. No full training has run.
+
+## VERIFIED batch256 preflight resource evidence
+
+| Task | Torch allocated peak | Torch reserved peak | Sampled whole-device peak | CUDA free after | Wall |
+|---|---:|---:|---:|---:|---:|
+| Push |455352320 B|484442112 B|1930 MiB|23414177792 B|16.368s|
+| Pick |379809280 B|438304768 B|1886 MiB|23460315136 B|17.941s|
+
+Both within proposed20GiB ceiling/4GiB free headroom; full300000-row replay capacity
+was allocated. Filesystem free~722/728GB, user quota still not proven. Telemetry
+includes simulator and checkpoint operations. Sampling can miss brief peaks.
+First optimizer call1.317/1.331s; following two Push .04016/.04624s,
+Pick .03823/.03685s. Only two warm observations per task, so uncertainty is large.
+INFERRED baseline full-training wall from measured step+planner+batch256 update:
+Push~7.8h, Pick~7.3h before validation/I/O; provision roughly9–12h/task as a planning
+range, not a bound. Proposed24h/task ceiling remains; approval pending.

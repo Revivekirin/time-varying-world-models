@@ -1,0 +1,843 @@
+{
+  "provenance": "User-supplied stdout, original reports/checkpoints on server",
+  "reports": [
+    {
+      "task": "PushCube-v1",
+      "status": "PASS_COMPATIBILITY_ONLY",
+      "transitions": 100,
+      "updates_executed": 3,
+      "full_training_authorized": false,
+      "tests": {
+        "phase0_evidence": "PASS user-produced reports and checkpoint present",
+        "checkpoint_frozen_forward": "PASS",
+        "terminal_bootstrap_mask": "PASS upstream target equals reward for terminated=1",
+        "batch256_forward_backward_optimizer": "PASS 3 physical updates, including replayed next update",
+        "learner_envelope": "PASS same-process replay/optimizers/scale/RNG/counters; collector and fresh-process resume NOT tested"
+      },
+      "phase0_evaluation": {
+        "status": "PASS",
+        "task": "PushCube-v1",
+        "episodes": [
+          {
+            "seed": 10001,
+            "length": 50,
+            "return_": 6.228174120187759,
+            "success": false,
+            "terminal_success": false,
+            "terminated": false,
+            "truncated": true
+          },
+          {
+            "seed": 10002,
+            "length": 50,
+            "return_": 5.174648433923721,
+            "success": false,
+            "terminal_success": false,
+            "terminated": false,
+            "truncated": true
+          }
+        ],
+        "transitions": 100,
+        "updates": 0,
+        "wall_seconds": 5.781758992001414
+      },
+      "evidence_hashes": {
+        "results/push-contract-002/report.json": "b9940181d3e5d7cd3d4eafd7fcac4d5ebe49ba9064169ca527d66b4646e2ede9",
+        "results/push-learner-002/report.json": "dee0d53635891301515122c136af66ffd46229f412ae3957cb030fdf785d35eb",
+        "results/push-learner-002/agent.pt": "22fe07bf67854dccba40eb92c7464ed6a7ab17ae1c083292a21f52faaab240a2",
+        "results/push-eval-001/report.json": "0b3007cea7ed79f7b235c046a9c1b24a4c55377c413f5fe63d7c5a5f14156292"
+      },
+      "sources": {
+        "tdmpc2": {
+          "url": "https://github.com/nicklashansen/tdmpc2.git",
+          "commit": "e9f59321933cbc8e11a002b842adc7d4ffae8ff1"
+        },
+        "tdmpc": {
+          "url": "https://github.com/nicklashansen/tdmpc.git",
+          "commit": "f4d85eca7419039b71bab2234ffc8aca378dd313"
+        },
+        "ManiSkill": {
+          "url": "https://github.com/haosulab/ManiSkill.git",
+          "commit": "62ff3a5896b4d5b4cf0ac4c8d79afe600c9404a3"
+        }
+      },
+      "dependency_lock_sha256": "52efd463295ece620206f88bf104dd91230eb43dd0fe11ffb74193622cd3a033",
+      "pip_check": "No broken requirements found.\n",
+      "packages": {
+        "torch": "2.7.1+cu118",
+        "numpy": "1.24.4",
+        "gymnasium": "0.29.1",
+        "tensordict": "0.8.3",
+        "torchrl": "0.8.1",
+        "sapien": "3.0.3",
+        "mani_skill": "3.0.1"
+      },
+      "python": "3.11.17 (main, Oct  1 2026, 20:17:42) [GCC 14.3.0]",
+      "project_revision": "23ffa6117f6a3d935ca52be9042652cdde11a853",
+      "preflight_script_sha256": "3189d9e263566917bb45ee492a32cb989ba0edc7316e1cd29da8977680d7c5b3",
+      "free_storage_bytes": 722400706560,
+      "cuda_free_before_bytes": 25164578816,
+      "cuda_total_bytes": 25438126080,
+      "gpu_name": "NVIDIA GeForce RTX 3090",
+      "torch_version": "2.7.1+cu118",
+      "cuda_runtime": "11.8",
+      "contract": {
+        "task": "PushCube-v1",
+        "horizon": 50,
+        "horizon_source": "mani_skill.utils.gym_utils.find_max_episode_steps_value",
+        "spec_horizon": null,
+        "action_dim": 8,
+        "action_low": [
+          -1.0,
+          -1.0,
+          -1.0,
+          -1.0,
+          -1.0,
+          -1.0,
+          -1.0,
+          -1.0
+        ],
+        "action_high": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "supported_control_modes": [
+          "pd_joint_delta_pos",
+          "pd_joint_pos",
+          "pd_ee_delta_pos",
+          "pd_ee_delta_pose",
+          "pd_ee_pose",
+          "pd_joint_target_delta_pos",
+          "pd_ee_target_delta_pos",
+          "pd_ee_target_delta_pose",
+          "pd_joint_vel",
+          "pd_joint_pos_vel",
+          "pd_joint_delta_pos_vel"
+        ],
+        "action_mapping": {
+          "arm": [
+            0,
+            7
+          ],
+          "gripper": [
+            7,
+            8
+          ]
+        },
+        "arm_config": {
+          "joint_names": [
+            "panda_joint1",
+            "panda_joint2",
+            "panda_joint3",
+            "panda_joint4",
+            "panda_joint5",
+            "panda_joint6",
+            "panda_joint7"
+          ],
+          "lower": -0.1,
+          "upper": 0.1,
+          "stiffness": 1000.0,
+          "damping": 100.0,
+          "force_limit": 100,
+          "friction": 0.0,
+          "use_delta": true,
+          "use_target": false,
+          "interpolate": false,
+          "normalize_action": true,
+          "drive_mode": "force"
+        },
+        "gripper_config": {
+          "joint_names": [
+            "panda_finger_joint1",
+            "panda_finger_joint2"
+          ],
+          "lower": -0.01,
+          "upper": 0.04,
+          "stiffness": 1000.0,
+          "damping": 100.0,
+          "force_limit": 100,
+          "friction": 0.0,
+          "use_delta": false,
+          "use_target": false,
+          "interpolate": false,
+          "normalize_action": true,
+          "drive_mode": "force",
+          "mimic": {
+            "panda_finger_joint2": {
+              "joint": "panda_finger_joint1"
+            }
+          }
+        },
+        "sim_freq": 100,
+        "control_freq": 20,
+        "action_repeat": 1,
+        "device": "cuda",
+        "gpu_sim_enabled": true,
+        "reward_mode": "normalized_dense",
+        "obs_dim": 35,
+        "obs_dtype": "torch.float32"
+      },
+      "replay_storage_device": "cuda:0",
+      "replay_capacity_rows": 300000,
+      "losses": [
+        {
+          "consistency_loss": 0.005220178514719009,
+          "reward_loss": 1.9681886434555054,
+          "value_loss": 1.9622836112976074,
+          "termination_loss": 0.004497883841395378,
+          "total_loss": 0.5019487142562866,
+          "grad_norm": 0.7779727578163147,
+          "termination_rate": 0.0,
+          "termination_f1": 0.0,
+          "pi_loss": -0.012749318033456802,
+          "pi_grad_norm": 0.005969258490949869,
+          "pi_entropy": -33.83960723876953,
+          "pi_scaled_entropy": 209.27487182617188,
+          "pi_scale": 1.0
+        },
+        {
+          "consistency_loss": 0.00355292740277946,
+          "reward_loss": 1.8748077154159546,
+          "value_loss": 1.8673839569091797,
+          "termination_loss": 0.002134926151484251,
+          "total_loss": 0.4474126398563385,
+          "grad_norm": 0.7361071705818176,
+          "termination_rate": 0.0,
+          "termination_f1": 0.0,
+          "pi_loss": -0.013581442646682262,
+          "pi_grad_norm": 0.0044158571399748325,
+          "pi_entropy": -34.79160690307617,
+          "pi_scaled_entropy": 212.41314697265625,
+          "pi_scale": 1.0
+        },
+        {
+          "consistency_loss": 0.00355292740277946,
+          "reward_loss": 1.8748077154159546,
+          "value_loss": 1.8673839569091797,
+          "termination_loss": 0.002134926151484251,
+          "total_loss": 0.4474126398563385,
+          "grad_norm": 0.7361071705818176,
+          "termination_rate": 0.0,
+          "termination_f1": 0.0,
+          "pi_loss": -0.013581442646682262,
+          "pi_grad_norm": 0.0044158571399748325,
+          "pi_entropy": -34.79160690307617,
+          "pi_scaled_entropy": 212.41314697265625,
+          "pi_scale": 1.0
+        }
+      ],
+      "update_seconds": [
+        1.3168152058497071,
+        0.040162185207009315,
+        0.04623570665717125
+      ],
+      "checkpoint_sha256": "5c06a8f0e7d6e973b132b38d055068aeefb9ac0ed1b1f585afe6f135430c3b78",
+      "cuda_free_after_bytes": 23414177792,
+      "torch_peak_allocated_bytes": 455352320,
+      "torch_peak_reserved_bytes": 484442112,
+      "gpu_telemetry": [
+        {
+          "elapsed_seconds": 2.4020547261461616,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 260, 23998, 24576"
+        },
+        {
+          "elapsed_seconds": 2.649977092631161,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 260, 23998, 24576"
+        },
+        {
+          "elapsed_seconds": 2.9008770333603024,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 260, 23998, 24576"
+        },
+        {
+          "elapsed_seconds": 3.125344330444932,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 260, 23998, 24576"
+        },
+        {
+          "elapsed_seconds": 3.4015783183276653,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 260, 23998, 24576"
+        },
+        {
+          "elapsed_seconds": 3.6263756807893515,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 260, 23998, 24576"
+        },
+        {
+          "elapsed_seconds": 4.856330792419612,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1448, 22811, 24576"
+        },
+        {
+          "elapsed_seconds": 5.138430031016469,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1450, 22809, 24576"
+        },
+        {
+          "elapsed_seconds": 5.361704686656594,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1450, 22809, 24576"
+        },
+        {
+          "elapsed_seconds": 5.590616565197706,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1450, 22809, 24576"
+        },
+        {
+          "elapsed_seconds": 5.9618911212310195,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1450, 22809, 24576"
+        },
+        {
+          "elapsed_seconds": 6.20912606921047,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1450, 22809, 24576"
+        },
+        {
+          "elapsed_seconds": 6.449310567229986,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1594, 22665, 24576"
+        },
+        {
+          "elapsed_seconds": 6.674623545259237,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1608, 22651, 24576"
+        },
+        {
+          "elapsed_seconds": 6.9141086637973785,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1608, 22651, 24576"
+        },
+        {
+          "elapsed_seconds": 7.141905497759581,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1608, 22651, 24576"
+        },
+        {
+          "elapsed_seconds": 7.39649451803416,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1608, 22651, 24576"
+        },
+        {
+          "elapsed_seconds": 7.631616317667067,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1650, 22609, 24576"
+        },
+        {
+          "elapsed_seconds": 7.883021967485547,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1650, 22609, 24576"
+        },
+        {
+          "elapsed_seconds": 8.121731599792838,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1650, 22609, 24576"
+        },
+        {
+          "elapsed_seconds": 8.41137617174536,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1650, 22609, 24576"
+        },
+        {
+          "elapsed_seconds": 8.71557766571641,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1650, 22609, 24576"
+        },
+        {
+          "elapsed_seconds": 9.200379388406873,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1650, 22609, 24576"
+        },
+        {
+          "elapsed_seconds": 9.42187078949064,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1704, 22555, 24576"
+        },
+        {
+          "elapsed_seconds": 12.627114776521921,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1838, 22421, 24576"
+        },
+        {
+          "elapsed_seconds": 12.869139288552105,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1838, 22421, 24576"
+        },
+        {
+          "elapsed_seconds": 13.115039236843586,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1838, 22421, 24576"
+        },
+        {
+          "elapsed_seconds": 13.35743958875537,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1838, 22421, 24576"
+        },
+        {
+          "elapsed_seconds": 13.57855315040797,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1838, 22421, 24576"
+        },
+        {
+          "elapsed_seconds": 13.821819802746177,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1842, 22417, 24576"
+        },
+        {
+          "elapsed_seconds": 14.06662265304476,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1848, 22411, 24576"
+        },
+        {
+          "elapsed_seconds": 14.28990503679961,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1848, 22411, 24576"
+        },
+        {
+          "elapsed_seconds": 14.534994214773178,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1874, 22385, 24576"
+        },
+        {
+          "elapsed_seconds": 14.757460923865438,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1874, 22385, 24576"
+        },
+        {
+          "elapsed_seconds": 14.978559629060328,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1874, 22385, 24576"
+        },
+        {
+          "elapsed_seconds": 15.199811254628003,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1874, 22385, 24576"
+        },
+        {
+          "elapsed_seconds": 15.422161758877337,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1916, 22343, 24576"
+        },
+        {
+          "elapsed_seconds": 15.642812979407609,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1916, 22343, 24576"
+        },
+        {
+          "elapsed_seconds": 15.884218608029187,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1930, 22329, 24576"
+        },
+        {
+          "elapsed_seconds": 16.145877824164927,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1930, 22329, 24576"
+        },
+        {
+          "elapsed_seconds": 16.368098991923034,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1930, 22329, 24576"
+        }
+      ],
+      "sampled_device_peak_used_mib": 1930.0,
+      "wall_seconds": 16.368286898359656
+    },
+    {
+      "task": "PickCube-v1",
+      "status": "PASS_COMPATIBILITY_ONLY",
+      "transitions": 100,
+      "updates_executed": 3,
+      "full_training_authorized": false,
+      "tests": {
+        "phase0_evidence": "PASS user-produced reports and checkpoint present",
+        "checkpoint_frozen_forward": "PASS",
+        "terminal_bootstrap_mask": "PASS upstream target equals reward for terminated=1",
+        "batch256_forward_backward_optimizer": "PASS 3 physical updates, including replayed next update",
+        "learner_envelope": "PASS same-process replay/optimizers/scale/RNG/counters; collector and fresh-process resume NOT tested"
+      },
+      "phase0_evaluation": {
+        "status": "PASS",
+        "task": "PickCube-v1",
+        "episodes": [
+          {
+            "seed": 10001,
+            "length": 50,
+            "return_": 1.463694991543889,
+            "success": false,
+            "terminal_success": false,
+            "terminated": false,
+            "truncated": true
+          },
+          {
+            "seed": 10002,
+            "length": 50,
+            "return_": 1.5477111842483282,
+            "success": false,
+            "terminal_success": false,
+            "terminated": false,
+            "truncated": true
+          }
+        ],
+        "transitions": 100,
+        "updates": 0,
+        "wall_seconds": 5.749534633941948
+      },
+      "evidence_hashes": {
+        "results/pick-contract-001/report.json": "5600aeccea3c3747212ac6875f5e487bc23ba5e963bf84c971b87cb37dd4e6d5",
+        "results/pick-learner-001/report.json": "d90ccf75c3029363ed497a398edc46c880d6bc9c1b1d94fb906ec5f212274901",
+        "results/pick-learner-001/agent.pt": "36e4ee6bc66da50657a699938be2f2d0ffaca3aa7b4882a449eb3cc419a53d2b",
+        "results/pick-eval-001/report.json": "d583326f8ac78f85e86fb2745265da64b1469a8e344bf3f9da133740eefdcf7f"
+      },
+      "sources": {
+        "tdmpc2": {
+          "url": "https://github.com/nicklashansen/tdmpc2.git",
+          "commit": "e9f59321933cbc8e11a002b842adc7d4ffae8ff1"
+        },
+        "tdmpc": {
+          "url": "https://github.com/nicklashansen/tdmpc.git",
+          "commit": "f4d85eca7419039b71bab2234ffc8aca378dd313"
+        },
+        "ManiSkill": {
+          "url": "https://github.com/haosulab/ManiSkill.git",
+          "commit": "62ff3a5896b4d5b4cf0ac4c8d79afe600c9404a3"
+        }
+      },
+      "dependency_lock_sha256": "52efd463295ece620206f88bf104dd91230eb43dd0fe11ffb74193622cd3a033",
+      "pip_check": "No broken requirements found.\n",
+      "packages": {
+        "torch": "2.7.1+cu118",
+        "numpy": "1.24.4",
+        "gymnasium": "0.29.1",
+        "tensordict": "0.8.3",
+        "torchrl": "0.8.1",
+        "sapien": "3.0.3",
+        "mani_skill": "3.0.1"
+      },
+      "python": "3.11.17 (main, Oct  1 2026, 20:17:42) [GCC 14.3.0]",
+      "project_revision": "23ffa6117f6a3d935ca52be9042652cdde11a853",
+      "preflight_script_sha256": "3189d9e263566917bb45ee492a32cb989ba0edc7316e1cd29da8977680d7c5b3",
+      "free_storage_bytes": 727799824384,
+      "cuda_free_before_bytes": 25164578816,
+      "cuda_total_bytes": 25438126080,
+      "gpu_name": "NVIDIA GeForce RTX 3090",
+      "torch_version": "2.7.1+cu118",
+      "cuda_runtime": "11.8",
+      "contract": {
+        "task": "PickCube-v1",
+        "horizon": 50,
+        "horizon_source": "mani_skill.utils.gym_utils.find_max_episode_steps_value",
+        "spec_horizon": null,
+        "action_dim": 8,
+        "action_low": [
+          -1.0,
+          -1.0,
+          -1.0,
+          -1.0,
+          -1.0,
+          -1.0,
+          -1.0,
+          -1.0
+        ],
+        "action_high": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "supported_control_modes": [
+          "pd_joint_delta_pos",
+          "pd_joint_pos",
+          "pd_ee_delta_pos",
+          "pd_ee_delta_pose",
+          "pd_ee_pose",
+          "pd_joint_target_delta_pos",
+          "pd_ee_target_delta_pos",
+          "pd_ee_target_delta_pose",
+          "pd_joint_vel",
+          "pd_joint_pos_vel",
+          "pd_joint_delta_pos_vel"
+        ],
+        "action_mapping": {
+          "arm": [
+            0,
+            7
+          ],
+          "gripper": [
+            7,
+            8
+          ]
+        },
+        "arm_config": {
+          "joint_names": [
+            "panda_joint1",
+            "panda_joint2",
+            "panda_joint3",
+            "panda_joint4",
+            "panda_joint5",
+            "panda_joint6",
+            "panda_joint7"
+          ],
+          "lower": -0.1,
+          "upper": 0.1,
+          "stiffness": 1000.0,
+          "damping": 100.0,
+          "force_limit": 100,
+          "friction": 0.0,
+          "use_delta": true,
+          "use_target": false,
+          "interpolate": false,
+          "normalize_action": true,
+          "drive_mode": "force"
+        },
+        "gripper_config": {
+          "joint_names": [
+            "panda_finger_joint1",
+            "panda_finger_joint2"
+          ],
+          "lower": -0.01,
+          "upper": 0.04,
+          "stiffness": 1000.0,
+          "damping": 100.0,
+          "force_limit": 100,
+          "friction": 0.0,
+          "use_delta": false,
+          "use_target": false,
+          "interpolate": false,
+          "normalize_action": true,
+          "drive_mode": "force",
+          "mimic": {
+            "panda_finger_joint2": {
+              "joint": "panda_finger_joint1"
+            }
+          }
+        },
+        "sim_freq": 100,
+        "control_freq": 20,
+        "action_repeat": 1,
+        "device": "cuda",
+        "gpu_sim_enabled": true,
+        "reward_mode": "normalized_dense",
+        "obs_dim": 42,
+        "obs_dtype": "torch.float32"
+      },
+      "replay_storage_device": "cuda:0",
+      "replay_capacity_rows": 300000,
+      "losses": [
+        {
+          "consistency_loss": 0.005967668257653713,
+          "reward_loss": 1.9650211334228516,
+          "value_loss": 1.9626705646514893,
+          "termination_loss": 0.005297049880027771,
+          "total_loss": 0.5174196362495422,
+          "grad_norm": 1.0006670951843262,
+          "termination_rate": 0.0,
+          "termination_f1": 0.0,
+          "pi_loss": -0.012652809731662273,
+          "pi_grad_norm": 0.006491453852504492,
+          "pi_entropy": -33.3311767578125,
+          "pi_scaled_entropy": 208.4974365234375,
+          "pi_scale": 1.0
+        },
+        {
+          "consistency_loss": 0.0036309165880084038,
+          "reward_loss": 1.868931531906128,
+          "value_loss": 1.866891622543335,
+          "termination_loss": 0.0026055271737277508,
+          "total_loss": 0.44880616664886475,
+          "grad_norm": 0.8749324679374695,
+          "termination_rate": 0.0,
+          "termination_f1": 0.0,
+          "pi_loss": -0.013500113040208817,
+          "pi_grad_norm": 0.004682368598878384,
+          "pi_entropy": -34.548946380615234,
+          "pi_scaled_entropy": 211.93702697753906,
+          "pi_scale": 1.0
+        },
+        {
+          "consistency_loss": 0.0036309165880084038,
+          "reward_loss": 1.868931531906128,
+          "value_loss": 1.866891622543335,
+          "termination_loss": 0.0026055271737277508,
+          "total_loss": 0.44880616664886475,
+          "grad_norm": 0.8749324679374695,
+          "termination_rate": 0.0,
+          "termination_f1": 0.0,
+          "pi_loss": -0.013500113040208817,
+          "pi_grad_norm": 0.004682368598878384,
+          "pi_entropy": -34.548946380615234,
+          "pi_scaled_entropy": 211.93702697753906,
+          "pi_scale": 1.0
+        }
+      ],
+      "update_seconds": [
+        1.3314939169213176,
+        0.03823204431682825,
+        0.036847627721726894
+      ],
+      "checkpoint_sha256": "0e83eaaff29574b6d49df432a8895c81c3f34f35239966889fb7b1613f938180",
+      "cuda_free_after_bytes": 23460315136,
+      "torch_peak_allocated_bytes": 379809280,
+      "torch_peak_reserved_bytes": 438304768,
+      "gpu_telemetry": [
+        {
+          "elapsed_seconds": 2.0067444387823343,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 260, 23998, 24576"
+        },
+        {
+          "elapsed_seconds": 2.24765058234334,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 260, 23998, 24576"
+        },
+        {
+          "elapsed_seconds": 2.511181919835508,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 260, 23998, 24576"
+        },
+        {
+          "elapsed_seconds": 2.7314949333667755,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 260, 23998, 24576"
+        },
+        {
+          "elapsed_seconds": 2.9510601479560137,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 260, 23998, 24576"
+        },
+        {
+          "elapsed_seconds": 3.187519292347133,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 260, 23998, 24576"
+        },
+        {
+          "elapsed_seconds": 3.4103065114468336,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 260, 23998, 24576"
+        },
+        {
+          "elapsed_seconds": 3.694930042140186,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 260, 23998, 24576"
+        },
+        {
+          "elapsed_seconds": 4.877383338287473,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 304, 23954, 24576"
+        },
+        {
+          "elapsed_seconds": 5.283610426820815,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1450, 22809, 24576"
+        },
+        {
+          "elapsed_seconds": 5.505901558324695,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1478, 22781, 24576"
+        },
+        {
+          "elapsed_seconds": 5.7684970665723085,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1478, 22781, 24576"
+        },
+        {
+          "elapsed_seconds": 6.023122342303395,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1478, 22781, 24576"
+        },
+        {
+          "elapsed_seconds": 6.352774748578668,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1478, 22781, 24576"
+        },
+        {
+          "elapsed_seconds": 6.596642365679145,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1478, 22781, 24576"
+        },
+        {
+          "elapsed_seconds": 6.846414381638169,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1478, 22781, 24576"
+        },
+        {
+          "elapsed_seconds": 7.076676869764924,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1478, 22781, 24576"
+        },
+        {
+          "elapsed_seconds": 7.323044332675636,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1478, 22781, 24576"
+        },
+        {
+          "elapsed_seconds": 7.550948813557625,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1478, 22781, 24576"
+        },
+        {
+          "elapsed_seconds": 7.8041042955592275,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1608, 22651, 24576"
+        },
+        {
+          "elapsed_seconds": 8.02497607562691,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1608, 22651, 24576"
+        },
+        {
+          "elapsed_seconds": 8.248389664106071,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1608, 22651, 24576"
+        },
+        {
+          "elapsed_seconds": 8.470563663169742,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1608, 22651, 24576"
+        },
+        {
+          "elapsed_seconds": 8.694793316535652,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1658, 22601, 24576"
+        },
+        {
+          "elapsed_seconds": 8.91808609943837,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1658, 22601, 24576"
+        },
+        {
+          "elapsed_seconds": 9.140802985988557,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1658, 22601, 24576"
+        },
+        {
+          "elapsed_seconds": 9.368898979388177,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1658, 22601, 24576"
+        },
+        {
+          "elapsed_seconds": 9.650578333064914,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1658, 22601, 24576"
+        },
+        {
+          "elapsed_seconds": 9.933705622330308,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1658, 22601, 24576"
+        },
+        {
+          "elapsed_seconds": 10.424688342958689,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1658, 22601, 24576"
+        },
+        {
+          "elapsed_seconds": 10.662400403060019,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1712, 22547, 24576"
+        },
+        {
+          "elapsed_seconds": 14.535049954429269,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1874, 22385, 24576"
+        },
+        {
+          "elapsed_seconds": 14.759368596598506,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1874, 22385, 24576"
+        },
+        {
+          "elapsed_seconds": 14.999117156490684,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1874, 22385, 24576"
+        },
+        {
+          "elapsed_seconds": 15.238535086624324,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1874, 22385, 24576"
+        },
+        {
+          "elapsed_seconds": 15.459804280661047,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1874, 22385, 24576"
+        },
+        {
+          "elapsed_seconds": 15.698398287408054,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1880, 22379, 24576"
+        },
+        {
+          "elapsed_seconds": 15.920280697755516,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1880, 22379, 24576"
+        },
+        {
+          "elapsed_seconds": 16.141140898689628,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1882, 22377, 24576"
+        },
+        {
+          "elapsed_seconds": 16.361706347204745,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1886, 22373, 24576"
+        },
+        {
+          "elapsed_seconds": 16.601469822227955,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1886, 22373, 24576"
+        },
+        {
+          "elapsed_seconds": 16.84150596894324,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1886, 22373, 24576"
+        },
+        {
+          "elapsed_seconds": 17.084169201552868,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1886, 22373, 24576"
+        },
+        {
+          "elapsed_seconds": 17.327817667275667,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1886, 22373, 24576"
+        },
+        {
+          "elapsed_seconds": 17.571504581719637,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1886, 22373, 24576"
+        },
+        {
+          "elapsed_seconds": 17.794184991158545,
+          "readings": "GPU-bb034a2b-4990-a388-df88-b25dc08e3ee6, 1886, 22373, 24576"
+        }
+      ],
+      "sampled_device_peak_used_mib": 1886.0,
+      "wall_seconds": 17.941137571819127
+    }
+  ]
+}

@@ -29,3 +29,12 @@ and heldout seed results, goal progress and stability; declining losses are not
 enough. One training seed cannot establish across-training-seed reproducibility.
 If nominal learning fails, inspect integration/reward/replay/optimization. No
 Phase2, hidden dynamics, history conditioning or online adaptation is initiated.
+
+## Latest evidence update
+
+Batch256, replay allocation, active GPU headroom, storage free-space checks and
+same-process learner envelope now VERIFIED on both tasks. Independent Phase0
+frozen rollout reports read and passed (0/2 successes each, as expected evidence
+of operation only). Next bounded gate is fresh-process learner restoration.
+Full collector/runner implementation and resume verification, plus final explicit
+budget approval remain outstanding. Full training still NO-GO.

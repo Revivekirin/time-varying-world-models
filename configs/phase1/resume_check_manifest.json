@@ -1,0 +1,25 @@
+{
+  "scope": "Fresh-process learner restoration only, no full training",
+  "per_task": {
+    "transitions": 0,
+    "resets": 0,
+    "updates": 1,
+    "batch_size": 256,
+    "model_size": 5,
+    "internal_timeout_seconds": 180,
+    "external_timeout_seconds": 210,
+    "kill_grace_seconds": 15
+  },
+  "commands": [
+    "timeout --signal=TERM --kill-after=15s 210s python scripts/phase1_resume_check.py --preflight results/phase1-push-preflight-002 --out results/phase1-push-resumecheck-001",
+    "timeout --signal=TERM --kill-after=15s 210s python scripts/phase1_resume_check.py --preflight results/phase1-pick-preflight-001 --out results/phase1-pick-resumecheck-001"
+  ],
+  "stop_conditions": [
+    "failed input evidence",
+    "checkpoint/source/dependency drift",
+    "resume error",
+    "metric mismatch",
+    "OOM",
+    "timeout"
+  ]
+}

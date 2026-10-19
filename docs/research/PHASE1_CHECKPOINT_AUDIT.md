@@ -40,3 +40,11 @@ revision/diff hash, dependency lock hash, resolved config hash, checkpoint hash,
 training/evaluation counters, checkpoint kind, validation metrics and wall time.
 Preflight envelopes are diagnostic only and are not sufficient to launch/resume
 full training until collector and fresh-process gates pass.
+
+## Runtime update
+
+VERIFIED same-process envelope restoration on both tasks: next-update metrics
+matched reference and exact model-state comparison passed. Both optimizer states,
+scale, replay, RNG and counters were included. Fresh-process validation now has
+a separate prepared command requiring zero environment transitions and one update.
+This does not establish full collector resume; do not remove that launch gate.
