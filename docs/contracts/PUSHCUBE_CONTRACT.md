@@ -49,3 +49,14 @@ zero/small alternating joint actions, finite outputs, boundaries, dimensions and
 controller semantics. Identity roundtrip does not establish reproducible branched
 future trajectories. Full state/RNG/time restoration and N>1 GPU behavior remain
 UNRESOLVED, and are explicit readiness gaps if required by later experiments.
+
+## Runtime evidence update
+
+VERIFIED by user-run server2 report `results/push-contract-002/report.json`: bounded
+A/B gate passed with100 transitions,4 explicit resets,0 learner updates.
+Observed flattened dimension35 float32; native action8, bounds[-1,1],
+100Hz/20Hz, horizon50 via native helper (env.spec horizon null), GPU enabled.
+Same-seed reset max difference0, identity state roundtrip passed. Both50-step
+episodes truncated without success/termination. This establishes the bounded
+single-env contract gate, not success termination coverage, exact future-state
+restoration, multi-env behavior or nominal competence.

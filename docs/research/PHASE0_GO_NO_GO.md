@@ -22,3 +22,11 @@ Additional open constraints: multi-env GPU behavior is source-inspected only;
 exact state/controller/RNG/time restoration not established; checkpoint is not
 training-resumable. A pass for bounded single-env integration would not establish
 these broader capabilities, nominal competence, interventions or history benefit.
+
+## Latest gate update
+
+Server installation/import/CUDA/unit gates and both single-env A/B contract
+gates now PASS by user execution. Earlier unresolved installation and task-shape
+entries are superseded by PHASE0_TEST_RESULTS.md updates. Model/planner, replay
+sampler, learner, checkpoint and full memory/runtime gates remain unresolved.
+Phase0 PARTIAL; Phase1 not ready.

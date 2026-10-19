@@ -109,3 +109,52 @@ transition budgets are unchanged. No upstream patch or simulator setting change.
 Added simulator-free installed-framework regression test for a wrapper limit with
 missing spec limit; remote execution pending. Retry in a fresh output directory;
 retain push-contract-001 as failed evidence. Global status remains PARTIAL.
+
+## Both task contract gates passed (user-run server2 evidence)
+
+Latest unit suite:18/18 pass, no skips,3.574s.
+PushCube results/push-contract-002: PASS,100 transitions,4 explicit resets,
+500 step-derived physics substeps,0 updates,6.222644s wall;
+67.568372 synchronized adapter transitions/s. Observation35 float32.
+PickCube results/pick-contract-001: PASS,100 transitions,4 explicit resets,
+500 step-derived physics substeps,0 updates,6.132199s wall;
+63.220219 synchronized adapter transitions/s. Observation42 float32.
+Both tasks: CUDA GPU simulation, action8 in[-1,1], arm0:7 delta ±.1rad,
+gripper7:8 absolute[-.01,.04], horizon50,100Hz simulation/20Hz control,
+action repeat1, native normalized_dense. Same-seed initial state difference0;
+identity state roundtrip passed. All four prescribed episodes reached50 steps
+and truncated, with terminated=false and success=false. True success termination
+has not been empirically exercised by these episodes. No competence claim.
+
+Both env.spec horizons were null while native wrapper readback was50, confirming
+the corrected discovery path. PyTorch peak allocated/reserved bytes:
+Push78848/2097152; Pick8602624/23068672. These exclude SAPIEN native allocations;
+device-wide GPU memory remains unmeasured. Throughput includes adapter checks and
+synchronization, excludes reset/constructor and is not training/planner throughput.
+
+Cumulative reported env.step transitions200, step-derived substeps1000,
+learner updates0. Constructor/reset internal simulation is not counted.
+Next: C–I learner smoke, <=250 transitions and<=8 updates per task, then independent
+frozen evaluation. Global Phase0 remains PARTIAL; Phase1 not ready.
+
+## PushCube first learner smoke: harness failure after8 updates
+
+User report results/push-learner-001:250 transitions,1250 step-derived substeps,
+6 resets,8 updates,13.552683s wall. C,D,E/F,G passed; first planning call .1431s,
+subsequent calls approximately .0318–.0360s. Failure before target/checkpoint checks:
+state_dict snapshot assumed every value supports clone; TensorDict includes
+non-tensor torch.Size metadata. No numerical learner failure reported. PickCube
+learner did not run. No checkpoint reached in this attempt.
+
+Harness fixed using deepcopy snapshots and type-aware exact comparisons;
+non-tensor metadata is retained and checked. No upstream algorithm change.
+Loss/update timing lists now enter reports before checkpoint checks so later
+failures do not discard them. Regression tests include mixed metadata and actual
+TensorDictParams state; both await installed-server execution (local has no torch).
+Local20 tests:15 pass/5 dependency skips; compile check passes.
+
+Next diagnostic retry explicitly budgets at most250 additional PushCube transitions
+and8 additional updates, same settings and fresh output push-learner-002. PickCube
+initial learner budget remains250/8. This is a harness correction, not tuning.
+Cumulative executed transitions450 and learner updates8 before retry; source-only
+synthetic sampler fixtures and constructor physics excluded from this count.

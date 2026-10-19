@@ -33,6 +33,7 @@ def main():
         import torch
         from tvwm.envs.maniskill import ManiSkillAdapter
         from tvwm.agents.upstream import verify_sources, load_api, config, episode_tensor
+        from tvwm.utils.state import snapshot_state, assert_state_equal
         report['sources'] = verify_sources()
         if not torch.cuda.is_available():
             raise RuntimeError('CUDA required; no CPU substitution for upstream learner')
@@ -127,12 +128,15 @@ def main():
             report['tests']['C']='PASS'; report['planning_seconds']=[latency]
             replay=Buffer(cfg)
             metrics=[]; update_times=[]
+            report["losses"]=metrics
+            report["update_seconds"]=update_times
             def update():
                 values,dt=timed(lambda:agent.update(replay))
                 report['updates']+=1
                 row={k:float(v) for k,v in values.items()}
                 if not all(math.isfinite(v) for v in row.values()): raise FloatingPointError(row)
                 metrics.append(row);update_times.append(dt)
+                report["learner_updates_per_second"]=len(update_times)/sum(update_times)
             # Four seed episodes, then exactly four learner updates.
             for ep in range(4):
                 obs=reset(10+ep); observations=[obs];actions=[];rewards=[];terms=[];truncs=[]
@@ -157,7 +161,7 @@ def main():
             if len(actions)>=cfg.horizon: replay.add(episode_tensor(observations,actions,rewards,terms,truncs))
             report['tests']['G']='PASS bounded planned collection and learner interleave'
             # Independently check target Polyak operation, then restore original state.
-            before={k:v.clone() for k,v in agent.model.state_dict().items()}
+            before=snapshot_state(agent.model.state_dict())
             target=agent.model._target_Qs_params.data.clone()
             online=agent.model._detach_Qs_params.data.clone()
             agent.model.soft_update_target_Q()
@@ -172,15 +176,15 @@ def main():
                 reference=agent.model.encode(obs[None].cuda(),None).clone()
                 next(agent.model._encoder.parameters()).add_(1)
             agent.load(checkpoint)
-            for k,v in agent.model.state_dict().items(): torch.testing.assert_close(v,before[k],rtol=0,atol=0)
+            assert_state_equal(agent.model.state_dict(),before)
             with torch.no_grad(): torch.testing.assert_close(agent.model.encode(obs[None].cuda(),None),reference,rtol=0,atol=0)
-            frozen={k:v.clone() for k,v in agent.model.state_dict().items()}
+            frozen=snapshot_state(agent.model.state_dict())
             rng=torch.cuda.get_rng_state_all();cpu_rng=torch.get_rng_state()
             first=agent.act(obs,t0=True,eval_mode=True)
             torch.cuda.set_rng_state_all(rng);torch.set_rng_state(cpu_rng)
             second=agent.act(obs,t0=True,eval_mode=True)
             torch.testing.assert_close(first,second,rtol=0,atol=0)
-            for k,v in agent.model.state_dict().items(): torch.testing.assert_close(v,frozen[k],rtol=0,atol=0)
+            assert_state_equal(agent.model.state_dict(),frozen)
             torch.save(dict(cpu=torch.get_rng_state(),cuda=torch.cuda.get_rng_state_all(),
                             numpy=np.random.get_state(),python=random.getstate()),args.out/'rng.pt')
             report['tests']['H']='PASS checkpoint encoder restoration, seeded frozen MPPI; not resumable training'
