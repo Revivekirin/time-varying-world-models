@@ -76,3 +76,36 @@ All GPU commands are **prepared and unexecuted**. After successful execution,
 archive the report.json/config/installed versions/source pins and device-wide
 memory telemetry. A report PASS is a bounded-stage result, not global Phase 0
 completion or evidence of a competent robot policy. Do not expand failing tests.
+
+## Update: user-executed server dependency gate passed
+
+User supplied server2 installation/test log after lock-generator fix:
+- Hashed artifact installation completed; editable projects already installed.
+- `pip check`: No broken requirements found.
+- Torch2.7.1+cu118, runtime CUDA11.8, NVIDIA GeForce RTX3090.
+- CUDA tensor arithmetic and imports (SAPIEN, ManiSkill environments, TensorDict,
+  TorchRL) passed.
+- All17 unit tests passed, no skips, reported duration2.257s. Includes real CPU
+  tensor observation conversion and TensorDict packing, not GPU replay sampling.
+
+VERIFIED by user execution, not agent remote execution. The previous missing-
+package blocker is resolved. Full lock exists on the server; its contents have
+not yet been copied to this local repository. Simulation transitions and learner
+updates remain0 in supplied evidence. CUDA test is not a simulator test.
+Next gate: per-task bounded contract A/B (<=100 transitions/task,0 updates).
+Global Phase0 remains PARTIAL; Phase1 not ready.
+
+## First PushCube contract attempt
+
+User report: FAIL before explicit reset/step,0 transitions,0 updates,5.209s.
+Guard rejected combined horizon/frequencies; prior error omitted actual values,
+so the failed field is not proven by this log. PickCube command did not run.
+Source inspection found an adapter defect: ManiSkill TimeLimitWrapper replaces
+Gymnasium TimeLimit, so env.spec.max_episode_steps need not retain the horizon.
+The pinned upstream provides find_max_episode_steps_value for this exact case.
+Adapter now uses that utility, records horizon provenance/spec value, and reports
+actual horizon and frequencies on any mismatch. Expected50/100Hz/20Hz and all
+transition budgets are unchanged. No upstream patch or simulator setting change.
+Added simulator-free installed-framework regression test for a wrapper limit with
+missing spec limit; remote execution pending. Retry in a fresh output directory;
+retain push-contract-001 as failed evidence. Global status remains PARTIAL.

@@ -32,10 +32,16 @@ class ManiSkillAdapter:
         self.base = self.env.unwrapped
         self.task = task
         self.done = True
-        self.horizon = self.env.spec.max_episode_steps
+        from mani_skill.utils.gym_utils import find_max_episode_steps_value
+        # ManiSkill replaces Gymnasium's TimeLimit; env.spec can lose the limit.
+        self.horizon = find_max_episode_steps_value(self.env)
         if self.horizon != 50 or self.base.sim_freq != 100 or self.base.control_freq != 20:
+            actual = dict(horizon=self.horizon, sim_freq=self.base.sim_freq,
+                          control_freq=self.base.control_freq,
+                          spec_horizon=getattr(self.env.spec, 'max_episode_steps', None))
             self.env.close()
-            raise ValueError("installed horizon/frequencies differ from bounded manifest")
+            raise ValueError(f'installed horizon/frequencies differ from bounded manifest: '
+                             f'expected horizon=50, sim_freq=100, control_freq=20; actual={actual}')
         self.space = self.base.single_action_space
         self.action_dim = self.space.shape[0]
         controller = self.base.agent.controller
@@ -54,7 +60,9 @@ class ManiSkillAdapter:
                 raise ValueError('unexpected action component mapping')
         if self.action_dim != 8 or not (self.space.low == -1).all() or not (self.space.high == 1).all():
             raise ValueError('expected normalized Panda delta action space')
-        self.contract = dict(task=task, horizon=self.horizon, action_dim=self.action_dim,
+        self.contract = dict(task=task, horizon=self.horizon,
+            horizon_source='mani_skill.utils.gym_utils.find_max_episode_steps_value',
+            spec_horizon=getattr(self.env.spec, 'max_episode_steps', None), action_dim=self.action_dim,
             action_low=self.space.low.tolist(), action_high=self.space.high.tolist(),
             supported_control_modes=self.base.agent.supported_control_modes,
             action_mapping=controller.action_mapping, arm_config=asdict(arm),

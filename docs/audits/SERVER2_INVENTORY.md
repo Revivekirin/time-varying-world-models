@@ -76,3 +76,11 @@ as downloaded bytes, not publisher checksums. Original report is preserved.
 Local regression tests: 7 converter tests pass, total15 pass/2 tensor skips.
 Download path tested with a mock, not a remote installation. Retry commands must
 stop on failure; do not continue to editable install/import checks after errors.
+
+## Installation/import gate subsequently passed
+
+User log confirms locked dependency installation, clean pip check,
+Torch2.7.1+cu118/CUDA11.8 on RTX3090, successful CUDA tensor operation and
+all requested imports, and17/17 unit tests passing in2.257s with no skips.
+This supersedes the previous installation failure. Runtime simulator/planner/
+learner/checkpoint behavior remains untested. Next: bounded contract tests only.

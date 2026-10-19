@@ -26,7 +26,7 @@ grasping, placement while grasped, and static bonus while placed; success reward
 | Repeat | exactly one native env.step per requested action; not old ManiSkill2 repeat=2 |
 | Reward | native normalized_dense selected explicitly; unchanged native formula/scale |
 | Boundary | native success/fail terminated; TimeLimitWrapper truncated at 50; reset on either; bootstrap masks terminated only |
-| Horizon | @register_env max_episode_steps=50; runtime env.spec readback |
+| Horizon | @register_env max_episode_steps=50; runtime native find_max_episode_steps_value wrapper readback |
 | State restore | get_state_dict/set_state_dict available; setter does not itself restore controller, elapsed counter or RNG; explicitly call agent.set_controller_state when needed |
 | Memory | delta controller resets start/target qpos; no persistent target integration for chosen mode; other target-delta modes are different |
 | GPU | native outputs batched on device; initial integration intentionally num_envs=1 because upstream planner has one warm-start cache; multi-env reset/replay not validated |
