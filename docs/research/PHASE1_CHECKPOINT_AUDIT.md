@@ -46,3 +46,16 @@ tests cover serialized/restored TorchRL CPU and CUDA storage followed by append.
 The runtime fix is UNRESOLVED until the server tests and collector checks pass.
 Retry Push with collectorcheck-002; Pick can use collectorcheck-001. Old failed
 artifacts and all Phase 0 artifacts remain unchanged.
+
+## Collector check 002 server evidence
+
+VERIFIED: all 32 server tests passed, including restored CPU/CUDA replay append.
+Push fresh-process rollout comparison failed: 1322/1785 observation elements
+differed at atol=1e-6, maximum absolute difference 4.558298110961914.
+Zero optimizer updates ran; Pick was not executed. The insertion fix passed,
+but collector continuation remains NO-GO. Cause is UNRESOLVED: the original
+report did not distinguish initial-state, first-action or later trajectory drift.
+The diagnostic revision saves reference.pt and child.pt and reports each trace's
+first mismatch, first-row difference, shapes and counters before failing.
+Tolerance and training configuration are unchanged. Retry Push collectorcheck-003
+only before deciding on further corrective work.

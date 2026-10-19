@@ -59,16 +59,38 @@ def main():
         env.close()
         # Release parent CUDA allocations before starting the independent simulator.
         ref=reference['trace']; expected=dict(counters)
+        torch.save(dict(trace=ref,counters=expected),a.out/'reference.pt')
         del agent,replay,env; torch.cuda.empty_cache()
         subprocess.run([sys.executable,__file__,'--preflight',str(a.preflight),'--resume-check',str(a.resume_check),
                         '--out',str(a.out),'--child'],check=True,timeout=180)
         child=torch.load(a.out/'child.pt',weights_only=False)
-        assert child['counters']==expected
-        differences={}
+        report['task']=evidence['task']
+        report['transitions']=warm['length']+reference['length']+len(child['trace']['actions'])
+        report['reference_counters']=expected
+        report['child_counters']=child['counters']
+        differences={}; diagnostics={}; matched=child['counters']==expected
         for key,value in ref.items():
             actual=child['trace'][key]
-            torch.testing.assert_close(actual,value,rtol=0,atol=1e-6)
-            differences[key]=float((actual.float()-value.float()).abs().max())
+            detail=dict(reference_shape=list(value.shape),child_shape=list(actual.shape))
+            if actual.shape!=value.shape:
+                detail['matches']=False; matched=False
+            else:
+                delta=(actual.float()-value.float()).abs()
+                close=torch.isclose(actual.float(),value.float(),rtol=0,atol=1e-6)
+                bad=(~close).nonzero()
+                detail.update(matches=bool(close.all()),max_abs_difference=float(delta.max()),
+                              first_row_max_abs_difference=float(delta[0].max()),
+                              mismatched_elements=int((~close).sum()),
+                              first_mismatch_index=bad[0].tolist() if len(bad) else None)
+                if len(bad):
+                    index=tuple(bad[0].tolist())
+                    detail.update(reference_at_first_mismatch=float(value[index]),child_at_first_mismatch=float(actual[index]))
+                differences[key]=float(delta.max()); matched &= detail['matches']
+            diagnostics[key]=detail
+        report['trace_diagnostics']=diagnostics
+        atomic_json(a.out/'trace-diagnostics.json',diagnostics)
+        if not matched:
+            raise AssertionError('Fresh-process continuation mismatch; see trace_diagnostics and reference.pt/child.pt. Tolerance unchanged at 1e-6.')
         subprocess.run([sys.executable,str(ROOT/'scripts/phase1_train.py'),'--out',str(a.out),
                         '--eval-output',str(a.out/'evaluation-check.json')],check=True,timeout=180)
         evaluation=json.loads((a.out/'evaluation-check.json').read_text())
