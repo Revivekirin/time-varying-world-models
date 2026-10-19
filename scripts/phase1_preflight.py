@@ -98,8 +98,9 @@ def main():
         torch.cuda.reset_peak_memory_stats()
         env=ManiSkillAdapter(a.task)
         obs,_=env.reset(seed=31001)
-        for key in ['obs_dim','action_dim','horizon','sim_freq','control_freq','action_mapping','reward_mode']:
-            if env.contract[key]!=contract['contract'][key]: raise ValueError(f'contract mismatch: {key}')
+        from tvwm.envs.contracts import compare_recorded_contract
+        compare_recorded_contract(env.contract, contract['contract'],
+            ['obs_dim','action_dim','horizon','sim_freq','control_freq','action_mapping','reward_mode'])
         report['contract']=env.contract
         Agent,Buffer=load_api()
         cfg=config(a.task,obs.numel(),env.action_dim,env.horizon)

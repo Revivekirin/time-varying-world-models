@@ -1,7 +1,17 @@
 """Dependency-free contract checks; never reinterpret absolute commands as deltas."""
 import math
+import json
 
 TASKS = ('PushCube-v1', 'PickCube-v1')
+
+
+def compare_recorded_contract(actual, recorded, keys):
+    """Compare JSON-persisted fields without treating tuples as different lists."""
+    for key in keys:
+        current = json.loads(json.dumps(actual[key], allow_nan=False))
+        saved = json.loads(json.dumps(recorded[key], allow_nan=False))
+        if current != saved:
+            raise ValueError(f'contract mismatch: {key}; actual={current!r}, recorded={saved!r}')
 
 
 def affine_action(values, low, high, *, inverse=False):

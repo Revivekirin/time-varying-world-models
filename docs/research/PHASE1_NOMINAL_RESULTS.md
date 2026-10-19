@@ -27,3 +27,18 @@ train transitions, learner updates, validation transitions, seed-wise success,
 return, goal distances, length, losses, gradient norms, planner time, learner time,
 memory, wall time, and selected checkpoint SHA256. Report failures without tuning
 or automatic restart. Full300000-step completion alone is not a competence pass.
+
+## First preflight attempt: contract serialization mismatch
+
+User-run Push preflight001 failed before any transitions/updates on action_mapping
+comparison. Runtime tuple ranges versus JSON list ranges were compared directly.
+Comparison now normalizes JSON representation, retaining checks on actual indices,
+scalar changes and missing fields. Four local regression cases pass. No algorithm,
+controller, batch or resource budget changed. Pick preflight did not execute.
+
+This report independently verifies Push Phase0 frozen evaluation: seeds10001/10002,
+50 transitions each, returns6.228174/5.174648,0/2 successes,0 updates,5.781759s.
+This is operational evaluation evidence, not nominal competence. Dependency pip
+check passed. Free filesystem bytes718346911744. Sampled GPU peak1450MiB occurred
+only during initialization, not batch256 learning; compatibility remains unresolved.
+New bounded retry uses push-preflight002 and initial pick-preflight001 outputs.
