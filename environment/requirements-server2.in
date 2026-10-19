@@ -1,0 +1,11 @@
+# Candidate selected after server2 inventory; NOT a resolved lock.
+# Python 3.11, Linux x86_64, torch CUDA 11.8 wheel channel.
+torch==2.7.1+cu118
+numpy==1.24.4
+gymnasium==0.29.1
+tensordict==0.8.3
+torchrl==0.8.1
+hydra-core==1.3.2
+omegaconf==2.3.0
+sapien==3.0.3
+# Add -e external/ManiSkill to resolver command for pinned source metadata.

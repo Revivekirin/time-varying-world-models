@@ -38,3 +38,11 @@ Source lock is complete. **Resolved binary/transitive dependency lock is not yet
 available**, deliberately pending server inspection. requirements.reference.txt
 is audit evidence only, not an install lock. Follow environment/README.md for
 inventory, reviewed resolution, isolated installation and post-install recording.
+
+## Update: server2 inventory received
+
+See SERVER2_INVENTORY.md for user-executed evidence and reviewed candidate.
+The earlier remote-inventory blocker is resolved. Actual research package
+installation, resolver lock and runtime compatibility are still unresolved.
+Python3.11 in a separate environment and Torch2.7.1+cu118 are selected for the
+next resolver dry run; requirements-server2.in is not a completed lock.
