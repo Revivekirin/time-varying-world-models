@@ -19,7 +19,7 @@ timeout --signal=TERM --kill-after=15s 600s \
   python scripts/phase1_collector_check.py \
   --preflight results/phase1-push-preflight-002 \
   --resume-check results/phase1-push-resumecheck-001 \
-  --out results/phase1-push-collectorcheck-001
+  --out results/phase1-push-collectorcheck-002
 timeout --signal=TERM --kill-after=15s 600s \
   python scripts/phase1_collector_check.py \
   --preflight results/phase1-pick-preflight-001 \
@@ -51,7 +51,7 @@ timeout --signal=TERM --kill-after=120s 86400s \
   python scripts/phase1_train.py \
   --preflight results/phase1-push-preflight-002 \
   --resume-check results/phase1-push-resumecheck-001 \
-  --collector-check results/phase1-push-collectorcheck-001 \
+  --collector-check results/phase1-push-collectorcheck-002 \
   --approve-budget 300000 \
   --out results/phase1-push-seed1-001
 timeout --signal=TERM --kill-after=120s 86400s \
@@ -83,7 +83,7 @@ timeout --signal=TERM --kill-after=120s 86400s \
   python scripts/phase1_train.py \
   --preflight results/phase1-push-preflight-002 \
   --resume-check results/phase1-push-resumecheck-001 \
-  --collector-check results/phase1-push-collectorcheck-001 \
+  --collector-check results/phase1-push-collectorcheck-002 \
   --approve-budget 300000 --resume --acknowledge-rollback \
   --out results/phase1-push-seed1-001
 ```

@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch
 try:
     import torch
-    from tvwm.agents.nominal import collect
+    from tvwm.agents.nominal import collect, append_episode
 except ImportError:
     torch=None
 
@@ -53,3 +53,35 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(events.count('update'),0)
         self.assertEqual(events.count('act'),0)
         self.assertEqual(events[-1],'add')
+
+
+@unittest.skipIf(torch is None, 'requires server torch dependencies')
+class RestoredReplayTests(unittest.TestCase):
+    def check_device(self, device):
+        import io
+        from tensordict import TensorDict
+        from torchrl.data.replay_buffers import ReplayBuffer, LazyTensorStorage
+        original=ReplayBuffer(storage=LazyTensorStorage(32,device=device),batch_size=2)
+        original.extend(TensorDict({'obs':torch.ones(4,3), 'reward':torch.ones(4)},[4]).to(device))
+        serialized=io.BytesIO()
+        torch.save(original.state_dict(),serialized); serialized.seek(0)
+        restored=ReplayBuffer(storage=LazyTensorStorage(32,device=device),batch_size=2)
+        restored.load_state_dict(torch.load(serialized,weights_only=False))
+        owner=self
+        class Adapter:
+            _storage_device=torch.device(device)
+            def add(self, episode):
+                owner.assertEqual(episode.device, self._storage_device)
+                return restored.extend(episode)
+        incoming=TensorDict({'obs':torch.full((3,3),2.), 'reward':torch.full((3,),2.)},[3])
+        append_episode(Adapter(),incoming)
+        self.assertEqual(len(restored),7)
+        torch.testing.assert_close(restored._storage[4:7]['obs'].cpu(),torch.full((3,3),2.))
+        self.assertEqual(incoming['obs'].device.type,'cpu')
+
+    def test_restored_cpu_storage_append(self):
+        self.check_device('cpu')
+
+    def test_restored_cuda_storage_append(self):
+        if not torch.cuda.is_available(): self.skipTest('requires CUDA server')
+        self.check_device('cuda:0')

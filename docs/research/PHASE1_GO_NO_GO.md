@@ -25,3 +25,18 @@ full-training launch. The explicit launch command is a separate user decision.
 
 No 10,000-transition pilot, dynamics shifts, history inputs, online adaptation,
 changed objectives, changed planning hyperparameters, or automatic Phase 2.
+
+## Collector check 001 server evidence
+
+VERIFIED: all 30 server unit tests passed without skips. Push collector check
+001 failed while appending the first collected episode to restored CUDA replay:
+incoming episode tensors were on CPU. No optimizer updates ran. Pick was not
+executed because the shell used set -e. Full training remains NO-GO.
+
+The shared Phase 1 collector now explicitly transfers new episodes to an already
+initialized replay storage device before insertion. This changes device placement
+only, not replay alignment, rewards, objectives, model or batch size. Regression
+tests cover serialized/restored TorchRL CPU and CUDA storage followed by append.
+The runtime fix is UNRESOLVED until the server tests and collector checks pass.
+Retry Push with collectorcheck-002; Pick can use collectorcheck-001. Old failed
+artifacts and all Phase 0 artifacts remain unchanged.

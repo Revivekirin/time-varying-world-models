@@ -31,3 +31,18 @@ there is no resumable best.pt. Metadata/hash mismatch fails closed, including a
 crash between checkpoint publication and sidecar publication. Use a separately
 verified interval snapshot only through an explicit recovery procedure; do not
 silently substitute checkpoints. Phase 0 artifacts remain untouched.
+
+## Collector check 001 server evidence
+
+VERIFIED: all 30 server unit tests passed without skips. Push collector check
+001 failed while appending the first collected episode to restored CUDA replay:
+incoming episode tensors were on CPU. No optimizer updates ran. Pick was not
+executed because the shell used set -e. Full training remains NO-GO.
+
+The shared Phase 1 collector now explicitly transfers new episodes to an already
+initialized replay storage device before insertion. This changes device placement
+only, not replay alignment, rewards, objectives, model or batch size. Regression
+tests cover serialized/restored TorchRL CPU and CUDA storage followed by append.
+The runtime fix is UNRESOLVED until the server tests and collector checks pass.
+Retry Push with collectorcheck-002; Pick can use collectorcheck-001. Old failed
+artifacts and all Phase 0 artifacts remain unchanged.

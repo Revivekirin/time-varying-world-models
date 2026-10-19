@@ -35,6 +35,14 @@ def goal_distance(env):
     return float(torch.linalg.vector_norm(env.base.cube.pose.p-env.base.goal_site.pose.p))
 
 
+def append_episode(replay, episode):
+    """Match initialized storage explicitly, including after TorchRL state restoration."""
+    device = getattr(replay, '_storage_device', None)
+    if device is not None:
+        episode = episode.to(device)
+    return replay.add(episode)
+
+
 def collect(env, agent, replay, counters, seed, *, learn=True, limit=300000, on_update=None):
     """Update from completed replay, then insert the newly completed episode (upstream order)."""
     obs, _ = env.reset(seed=training_seed(seed, counters['episode_index']))
@@ -59,7 +67,7 @@ def collect(env, agent, replay, counters, seed, *, learn=True, limit=300000, on_
         if term or trunc: break
     complete=bool(terms and (terms[-1] or truncs[-1]))
     if complete:
-        replay.add(episode_tensor(observations,actions,rewards,terms,truncs))
+        append_episode(replay, episode_tensor(observations,actions,rewards,terms,truncs))
         counters['episode_index'] += 1
     return dict(length=len(actions),return_=sum(rewards),success=success,complete=complete,
                 goal_progress=start_distance-goal_distance(env),final_goal_distance=goal_distance(env),
