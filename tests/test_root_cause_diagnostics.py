@@ -22,3 +22,26 @@ class DifferenceTests(unittest.TestCase):
     def test_scalar_rng_and_missing_state(self):
         self.assertFalse(diag.compare({'a':torch.tensor(1)},{'a':torch.tensor(2)})['exact'])
         self.assertFalse(diag.compare({'a':torch.tensor(1)},{})['within_tolerance'])
+
+
+@unittest.skipIf(torch is None,'requires torch')
+class StateDigestTests(unittest.TestCase):
+    def test_metadata_and_tensor_changes(self):
+        state={'weight':torch.tensor(1.),'shape':torch.Size([2,3]),
+               'device':torch.device('cpu'),'nested':{'dtype':torch.float32,'value':None}}
+        cloned={'nested':{'value':None,'dtype':torch.float32},'device':torch.device('cpu'),
+                'shape':torch.Size([2,3]),'weight':torch.tensor(1.)}
+        self.assertEqual(diag.state_digest(state),diag.state_digest(cloned))
+        cloned['shape']=torch.Size([3,2])
+        self.assertNotEqual(diag.state_digest(state),diag.state_digest(cloned))
+        cloned['shape']=state['shape'];cloned['weight']=torch.tensor(2.)
+        self.assertNotEqual(diag.state_digest(state),diag.state_digest(cloned))
+
+    def test_real_tensordict_state(self):
+        from tensordict import TensorDict
+        state=TensorDict({'w':torch.ones(2)},batch_size=[]).state_dict()
+        self.assertEqual(diag.state_digest(state),diag.state_digest(state))
+
+    def test_bfloat_and_empty_tensor(self):
+        self.assertEqual(diag.state_digest({'x':torch.ones(2,dtype=torch.bfloat16),'empty':torch.empty(0)}),
+                         diag.state_digest({'empty':torch.empty(0),'x':torch.ones(2,dtype=torch.bfloat16)}))

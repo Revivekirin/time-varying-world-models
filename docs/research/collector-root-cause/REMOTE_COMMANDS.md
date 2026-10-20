@@ -48,3 +48,23 @@ boundary episode_index minus one, not accepted blindly. This must be original
 recorded data from the preceding warm episode, not newly generated actions or an
 unrelated replay episode. Default runs do not invent such a file. A2 adds at most
 100 environment transitions. Use a new output directory for any added run.
+
+## Planner-only retry after checksum metadata fix
+
+Keep rootcause-001 intact. No environment runs are repeated:
+
+```bash
+(
+set -e
+PYTHONPATH=src python -m unittest discover -s tests -v
+timeout --signal=TERM --kill-after=15s 960s \
+  python scripts/phase1_root_cause.py \
+  --source results/phase1-push-collectorcheck-003 \
+  --planner-only \
+  --out results/phase1-push-rootcause-planner-002
+)
+```
+
+Maximum 250 planner calls, zero environment transitions, zero optimizer updates.
+Share the new summary.json; for worker errors share the corresponding worker log.
+Previous A1 evidence stays separate, not relabeled as newly measured.

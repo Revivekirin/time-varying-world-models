@@ -55,3 +55,18 @@ No justified new production fix identified. Preserve checkpoints, locks, upstrea
 - `external/tdmpc2/tdmpc2/tdmpc2.py:185` — `elite_idxs = torch.topk(value.squeeze(1), self.cfg.num_elites, dim=0).indices`
 - `external/tdmpc2/tdmpc2/tdmpc2.py:200` — `rand_idx = math.gumbel_softmax_sample(score.squeeze(1))`
 - `external/tdmpc2/tdmpc2/tdmpc2.py:205` — `self._prev_mean.copy_(mean)`
+
+## Server diagnostic 001 and checksum correction
+
+VERIFIED from supplied results: A1 native control-boundary state records matched
+exactly in two fresh processes. Probe control-boundary trajectories also matched;
+first-substep results must be checked separately. Original input hashes unchanged.
+All five planner workers stopped before their first act call: the diagnostic
+model checksum assumed all state_dict entries were tensors, but torch.Size
+metadata is present. This is a diagnostic implementation error, not evidence of
+planner divergence. B1/B2 and causal classification remain UNRESOLVED; NO-GO persists.
+
+The checksum now recursively encodes typed metadata and raw tensor bytes, with
+regression tests for torch.Size, real TensorDict state, scalar and bfloat tensors.
+Only diagnostic code changed. --planner-only repeats at most 250 act calls in
+five processes, zero environment transitions and zero updates, with new outputs.

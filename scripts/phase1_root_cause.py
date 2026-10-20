@@ -80,12 +80,34 @@ def snapshot(env,obs,missing):
     return state
 
 
-def model_digest(agent):
+def state_digest(state):
+    """Canonical typed hash of tensors and state_dict metadata; no pickle addresses."""
+    import torch
     h=hashlib.sha256()
-    for key,tensor in sorted(agent.model.state_dict().items()):
-        h.update(key.encode());h.update(str(tensor.dtype).encode());h.update(str(tuple(tensor.shape)).encode())
-        h.update(tensor.detach().cpu().contiguous().numpy().tobytes())
+    def token(data):
+        h.update(len(data).to_bytes(8,'big'));h.update(data)
+    def visit(value):
+        token((type(value).__module__+'.'+type(value).__qualname__).encode())
+        if torch.is_tensor(value):
+            token(str(value.dtype).encode());visit(tuple(value.shape))
+            token(value.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy().tobytes())
+        elif isinstance(value,dict):
+            if not all(isinstance(key,str) for key in value): raise TypeError('state keys must be strings')
+            for key in sorted(value): visit(key);visit(value[key])
+        elif isinstance(value,(tuple,list)):
+            token(str(len(value)).encode())
+            for item in value: visit(item)
+        elif value is None or isinstance(value,(str,int,float,bool)):
+            token(repr(value).encode())
+        elif isinstance(value,(torch.device,torch.dtype)):
+            token(str(value).encode())
+        else: raise TypeError('unsupported checkpoint metadata: '+str(type(value)))
+    visit(state)
     return h.hexdigest()
+
+
+def model_digest(agent):
+    return state_digest(agent.model.state_dict())
 
 
 def worker(a):
@@ -196,19 +218,22 @@ def main():
     p=argparse.ArgumentParser()
     p.add_argument('--source',type=Path,required=True);p.add_argument('--out',type=Path)
     p.add_argument('--warm-history',type=Path)
+    p.add_argument('--planner-only',action='store_true')
     p.add_argument('--worker',choices=['env-fresh','env-warm','env-probe','planner-ref','planner-child','planner-all-t0'])
     p.add_argument('--destination',type=Path)
     a=p.parse_args()
     if a.worker: worker(a);return
     if a.out is None: p.error('--out required')
+    if a.planner_only and a.warm_history: p.error('--planner-only cannot include warm history')
     a.out.mkdir(parents=True,exist_ok=False)
     required=['reference.pt','child.pt','boundary.pt']
     hashes={name:digest(a.source/name) for name in required}
     write(a.out/'input-hashes.json',hashes);write(a.out/'source-references.json',source_refs())
     report={'phase1_readiness':'NO-GO','optimizer_updates':0,'training_transitions':0,
-            'max_simulation_transitions':300 if a.warm_history else 200,'max_planner_calls':250,'comparisons':{}}
+            'max_simulation_transitions':0 if a.planner_only else (300 if a.warm_history else 200),'max_planner_calls':250,'comparisons':{}}
     jobs=[('env-fresh','env-a'),('env-fresh','env-b'),('env-probe','probe-a'),('env-probe','probe-b'),('planner-ref','planner-a'),('planner-ref','planner-b'),
           ('planner-child','planner-child'),('planner-all-t0','planner-t0-a'),('planner-all-t0','planner-t0-b')]
+    if a.planner_only: jobs=[job for job in jobs if job[0].startswith('planner')]
     if a.warm_history:jobs.append(('env-warm','env-warm'))
     try:
         import torch
@@ -224,6 +249,9 @@ def main():
                 report['worker_errors'][name]=repr(error)
                 print('Failed '+name+'; see worker log. Continuing independent diagnostics.',flush=True)
         pairs=[('A1','env-a','env-b'),('A1_probe','probe-a','probe-b'),('probe_effect','env-a','probe-a'),('B1','planner-a','planner-b'),('B1_all_t0','planner-t0-a','planner-t0-b'),('B2','planner-a','planner-child')]
+        if a.planner_only:
+            pairs=[pair for pair in pairs if pair[0].startswith('B')]
+            report['comparisons']['A1']={'status':'NOT_RERUN','reason':'planner-only; previous environment evidence remains separate'}
         if a.warm_history:pairs.append(('A2','env-warm','env-b'))
         else:report['comparisons']['A2']={'status':'UNRESOLVED','reason':'Original recorded warm episode actions unavailable; no replacement history generated.'}
         for label,l,r in pairs:
