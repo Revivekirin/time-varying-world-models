@@ -42,7 +42,8 @@ def evaluate(a):
     from tvwm.utils.monitoring import EvaluationVideo
     from tvwm.agents.upstream import load_api
     from tvwm.agents.nominal import seed_all,goal_distance,atomic_json
-    from tvwm.envs.process_env import EpisodeEnvironment as ManiSkillAdapter
+    from tvwm.envs.prefetch_env import environment_class
+    ManiSkillAdapter=environment_class(a.simulator_pipeline)
     Agent,_=load_api()
     from common.parser import cfg_to_dataclass
     from omegaconf import OmegaConf
@@ -100,15 +101,19 @@ def main():
     p.add_argument('--wandb-project',default=os.environ.get('WANDB_PROJECT','tvwm-phase1'))
     p.add_argument('--wandb-entity',default=os.environ.get('WANDB_ENTITY'))
     p.add_argument('--video-episodes',type=int,choices=[0,1,2],default=2)
+    p.add_argument('--simulator-pipeline',choices=['baseline','cpu-prefetch'],default='baseline')
     a=p.parse_args()
     if a.eval_output: evaluate(a); return 0
+    if a.simulator_pipeline=='cpu-prefetch':
+        raise RuntimeError('CPU-prefetch is a bounded-test candidate only: performance acceptance and latest-checkpoint migration are not verified')
     if a.approve_budget!=300000: p.error('explicit --approve-budget 300000 required; 24h/task and resource limits apply')
     if not all([a.preflight,a.resume_check,a.collector_check]): p.error('all three evidence paths required')
     import torch
     from tvwm.agents.upstream import load_api,verify_sources
     from tvwm.agents.resume import save_learner,load_learner
     from tvwm.agents.nominal import collect,code_hash,seed_all,empty_replay,atomic_json
-    from tvwm.envs.process_env import EpisodeEnvironment as ManiSkillAdapter
+    from tvwm.envs.prefetch_env import environment_class
+    ManiSkillAdapter=environment_class(a.simulator_pipeline)
     from tvwm.envs.contracts import compare_recorded_contract
     plan=read(ROOT/'configs/phase1/nominal.json'); evidence=read(a.preflight/'report.json')
     resume=read(a.resume_check/'report.json'); collector=read(a.collector_check/'report.json')
@@ -117,7 +122,7 @@ def main():
     if not evidence['task']==resume['task']==collector['task']: raise ValueError('gate task mismatch')
     if not evidence['checkpoint_sha256']==resume['checkpoint_sha256']==collector['preflight_checkpoint_sha256']==sha256(a.preflight/'learner-envelope.pt'):
         raise ValueError('gate checkpoint mismatch')
-    if collector.get('environment_lifecycle')!='spawn_per_episode_v1': raise ValueError('collector lifecycle evidence required')
+    if collector.get('environment_lifecycle')!=ManiSkillAdapter.lifecycle: raise ValueError('collector lifecycle evidence required')
     if collector['code_sha256']!=code_hash(): raise ValueError('code/config changed after collector check; rerun check')
     if verify_sources()!=evidence['sources']: raise ValueError('source mismatch')
     if {k:md.version(k) for k in evidence['packages']}!=evidence['packages']: raise ValueError('package mismatch')
@@ -139,7 +144,7 @@ def main():
     env.close()
     # Constructor/reset happens before RNG restoration. Fresh training never loads smoke weights.
     agent=Agent(cfg); replay=Buffer(cfg)
-    provenance=dict(environment_lifecycle='spawn_per_episode_v1',task=evidence['task'],sources=evidence['sources'],config=vars(cfg),plan=plan,
+    provenance=dict(environment_lifecycle=ManiSkillAdapter.lifecycle,task=evidence['task'],sources=evidence['sources'],config=vars(cfg),plan=plan,
                     code_sha256=code_hash(),packages=evidence['packages'],dependency_lock_sha256=evidence['dependency_lock_sha256'])
     counters=dict(transitions=0,updates=0,episode_index=0,evaluation_transitions=0,next_validation=0,
                   next_checkpoint=10000,best_score=None,best_model_file=None,best_model_sha256=None,
@@ -214,7 +219,7 @@ def main():
         tracking.phase('Validation')
         destination=a.out/f'validation-{counters["transitions"]:09d}-{attempt}.json'
         agent.save(a.out/'evaluation-model.pt')
-        subprocess.run([sys.executable,__file__,'--out',str(a.out),'--eval-output',str(destination),'--video-episodes',str(a.video_episodes)],check=True,timeout=600)
+        subprocess.run([sys.executable,__file__,'--out',str(a.out),'--eval-output',str(destination),'--video-episodes',str(a.video_episodes),'--simulator-pipeline',a.simulator_pipeline],check=True,timeout=600)
         result=read(destination); counters['evaluation_transitions']+=result['transitions']
         result['training_transitions']=counters['transitions']; result['learner_updates']=counters['updates']
         result['checkpoint_model_sha256']=sha256(a.out/'evaluation-model.pt'); atomic_json(destination,result)

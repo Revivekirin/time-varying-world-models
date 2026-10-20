@@ -1,0 +1,30 @@
+{
+  "src/tvwm/envs/prefetch_env.py": {
+    "candidate_sha256": "1f9ff540d27b116c90142fe1b50748abe3df482f5cacafa41f23a70bb18aa190",
+    "base_sha256": null
+  },
+  "scripts/phase1_train.py": {
+    "candidate_sha256": "ee77b2d0390adf8cb95e9a0ecd06cd618ea74d7c5b0a421e13ced518ece08ff7",
+    "base_sha256": "260e5470a38a92edc33d0f76d162e85db5f4f9dff0c86fc8abe47b16013ef033"
+  },
+  "scripts/phase1_collector_check.py": {
+    "candidate_sha256": "5e82a0eb70d0480fc28d27cd78545ce722dc178128273e991d300ce0918a39f3",
+    "base_sha256": "9e983607b8822401778e3350107ca9d49947917d143250e994e63dd824f1a8d6"
+  },
+  "scripts/throughput_inventory.py": {
+    "candidate_sha256": "9e71bb6b8fe53908af21ab38f0cf48bf0fd025742f1359ad8493a9826bc8f27b",
+    "base_sha256": null
+  },
+  "scripts/throughput_compare.py": {
+    "candidate_sha256": "cba8c304a6775a00e22df56b077fc6b0f83da01a3b0db915ed1fffa498e4d2ce",
+    "base_sha256": null
+  },
+  "tests/test_prefetch_env.py": {
+    "candidate_sha256": "5357eb9f8ed80aab1a1dbe5265dc32e66e384d39711a246de4807f56498e4019",
+    "base_sha256": null
+  },
+  "docs/research/PHASE1_THROUGHPUT_OPTIMIZATION.md": {
+    "candidate_sha256": "eeb5abaf8e4c37194d31520fec298e06dab20e9675cf5f58ebc4a2eacf0e7dff",
+    "base_sha256": null
+  }
+}

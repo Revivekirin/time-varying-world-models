@@ -15,6 +15,7 @@ def main():
     p=argparse.ArgumentParser()
     p.add_argument('--preflight',type=Path,required=True); p.add_argument('--resume-check',type=Path,required=True)
     p.add_argument('--out',type=Path,required=True); p.add_argument('--child',action='store_true')
+    p.add_argument('--simulator-pipeline',choices=['baseline','cpu-prefetch'],default='baseline')
     a=p.parse_args(); start=time.monotonic()
     if not a.child: a.out.mkdir(parents=True,exist_ok=False)
     report=dict(status='FAIL',optimizer_updates=0,maximum_total_transitions=250)
@@ -25,7 +26,8 @@ def main():
         from tvwm.agents.upstream import load_api,verify_sources
         from tvwm.agents.resume import load_learner,save_learner
         from tvwm.agents.nominal import collect,empty_replay,code_hash,atomic_json
-        from tvwm.envs.process_env import EpisodeEnvironment as ManiSkillAdapter
+        from tvwm.envs.prefetch_env import environment_class
+        ManiSkillAdapter=environment_class(a.simulator_pipeline)
         evidence=json.loads((a.preflight/'report.json').read_text())
         resume=json.loads((a.resume_check/'report.json').read_text())
         assert evidence['status']=='PASS_COMPATIBILITY_ONLY'
@@ -64,9 +66,9 @@ def main():
         torch.save(dict(trace=ref,counters=expected),a.out/'reference.pt')
         del agent,replay; env=None; torch.cuda.empty_cache()
         subprocess.run([sys.executable,__file__,'--preflight',str(a.preflight),'--resume-check',str(a.resume_check),
-                        '--out',str(a.out),'--child'],check=True,timeout=180)
+                        '--out',str(a.out),'--simulator-pipeline',a.simulator_pipeline,'--child'],check=True,timeout=180)
         child=torch.load(a.out/'child.pt',weights_only=False)
-        report['environment_lifecycle']='spawn_per_episode_v1'
+        report['environment_lifecycle']=ManiSkillAdapter.lifecycle
         report['environment_recreation_seconds']={'warm':warm['environment_recreation_seconds'],
               'reference':reference['environment_recreation_seconds'],'child':child['environment_recreation_seconds']}
         mean_recreation=sum(report['environment_recreation_seconds'].values())/3
@@ -102,7 +104,7 @@ def main():
         if not matched:
             raise AssertionError('Fresh-process continuation mismatch; see trace_diagnostics and reference.pt/child.pt. Tolerance unchanged at 1e-6.')
         subprocess.run([sys.executable,str(ROOT/'scripts/phase1_train.py'),'--out',str(a.out),
-                        '--eval-output',str(a.out/'evaluation-check.json')],check=True,timeout=180)
+                        '--eval-output',str(a.out/'evaluation-check.json'),'--simulator-pipeline',a.simulator_pipeline],check=True,timeout=180)
         evaluation=json.loads((a.out/'evaluation-check.json').read_text())
         assert evaluation['status']=='PASS' and evaluation['updates']==0 and evaluation['transitions']<=100
         assert [e['seed'] for e in evaluation['episodes']]==plan['validation_seeds']
