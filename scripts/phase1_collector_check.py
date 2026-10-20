@@ -24,7 +24,7 @@ def main():
         from tvwm.agents.upstream import load_api,verify_sources
         from tvwm.agents.resume import load_learner,save_learner
         from tvwm.agents.nominal import collect,empty_replay,code_hash,atomic_json
-        from tvwm.envs.maniskill import ManiSkillAdapter
+        from tvwm.envs.episode_lifecycle import EpisodeEnvironment as ManiSkillAdapter
         evidence=json.loads((a.preflight/'report.json').read_text())
         resume=json.loads((a.resume_check/'report.json').read_text())
         assert evidence['status']=='PASS_COMPATIBILITY_ONLY'
@@ -44,7 +44,8 @@ def main():
         if a.child:
             counters=load_learner(a.out/'boundary.pt',agent,replay,provenance)
             episode=collect(env,agent,replay,counters,1,learn=False)
-            torch.save(dict(trace=episode['trace'],counters=counters),a.out/'child.pt')
+            torch.save(dict(trace=episode['trace'],counters=counters,
+                            environment_recreation_seconds=episode['environment_recreation_seconds']),a.out/'child.pt')
             env.close(); return 0
         counters=load_learner(a.preflight/'learner-envelope.pt',agent,replay,provenance)
         warm=collect(env,agent,replay,counters,1,learn=False)
@@ -64,6 +65,13 @@ def main():
         subprocess.run([sys.executable,__file__,'--preflight',str(a.preflight),'--resume-check',str(a.resume_check),
                         '--out',str(a.out),'--child'],check=True,timeout=180)
         child=torch.load(a.out/'child.pt',weights_only=False)
+        report['environment_lifecycle']='recreate_before_episode_v1'
+        report['environment_recreation_seconds']={'warm':warm['environment_recreation_seconds'],
+              'reference':reference['environment_recreation_seconds'],'child':child['environment_recreation_seconds']}
+        mean_recreation=sum(report['environment_recreation_seconds'].values())/3
+        report['recreation_overhead_estimate']={'mean_measured_seconds':mean_recreation,
+            'added_seconds_for_6000_training_episodes':6000*mean_recreation,
+            'classification':'INFERRED from three compatibility episodes; not measured full training time'}
         report['task']=evidence['task']
         report['transitions']=warm['length']+reference['length']+len(child['trace']['actions'])
         report['reference_counters']=expected

@@ -1,3 +1,9 @@
+# Current integrated lifecycle workflow
+
+After syncing the new files, use `bash scripts/phase1_integrated_launch.sh` in the activated server environment. This runs unit tests, both strict collector gates, and then the explicitly approved sequential full runs. Any failure stops the workflow. New output paths and details are in `docs/research/PHASE1_LIFECYCLE_FIX.md`.
+
+The commands below are historical pre-recreation paths; use the integrated workflow above for this revision.
+
 # User-run Phase 1 commands
 
 First sync the new implementation to the server using your normal Git workflow.

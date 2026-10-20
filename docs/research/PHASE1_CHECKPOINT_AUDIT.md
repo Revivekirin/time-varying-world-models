@@ -1,5 +1,18 @@
 # Phase 1 checkpoint audit
 
+## Current lifecycle integration status
+
+The user has explicitly approved the full nominal budget conditional on gates.
+Episode-boundary environment recreation is now implemented identically in Phase 1
+collection, collector verification and evaluation. Root-cause campaigns are stopped.
+Local checks: 28 passed, 16 dependency skips. Server collector gates and recreation
+overhead are UNRESOLVED; training is NOT LAUNCHED by the assistant. Existing preflight
+and learner-resume evidence is reused; strict collector evidence must be regenerated.
+Both gates must pass before the integrated script launches sequential full runs.
+See [PHASE1_LIFECYCLE_FIX.md](PHASE1_LIFECYCLE_FIX.md) for the current implementation,
+commands, output paths and limitations. Older statements below describe historical
+states and do not revoke the explicit budget approval or grant an unpassed gate.
+
 **VERIFIED (user-provided server reports):** both tasks passed
 PASS_LEARNER_RESUME_ONLY in a fresh process. Each restored transitions=100,
 updates=1, episode_index=2 and executed exactly one further batch-256 update,

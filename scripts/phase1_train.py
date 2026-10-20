@@ -39,7 +39,7 @@ def evaluate(a):
     import torch
     from tvwm.agents.upstream import load_api
     from tvwm.agents.nominal import seed_all,goal_distance,atomic_json
-    from tvwm.envs.maniskill import ManiSkillAdapter
+    from tvwm.envs.episode_lifecycle import EpisodeEnvironment as ManiSkillAdapter
     Agent,_=load_api()
     from common.parser import cfg_to_dataclass
     from omegaconf import OmegaConf
@@ -60,7 +60,8 @@ def evaluate(a):
         else: raise AssertionError('evaluation missing episode boundary')
         episodes.append(dict(seed=seed,length=t+1,return_=ret,success=success,
                              terminal_success=bool(info['success'].item()),goal_progress=initial-goal_distance(env),
-                             final_goal_distance=goal_distance(env),terminated=term,truncated=trunc))
+                             final_goal_distance=goal_distance(env),terminated=term,truncated=trunc,
+                             environment_recreation_seconds=env.last_recreation_seconds))
     result=dict(status='PASS',episodes=episodes,transitions=steps,updates=0,planner_seconds=planner,
                 success_rate=sum(e['success'] for e in episodes)/len(episodes),
                 mean_return=sum(e['return_'] for e in episodes)/len(episodes),
@@ -87,7 +88,7 @@ def main():
     from tvwm.agents.upstream import load_api,verify_sources
     from tvwm.agents.resume import save_learner,load_learner
     from tvwm.agents.nominal import collect,code_hash,seed_all,empty_replay,atomic_json
-    from tvwm.envs.maniskill import ManiSkillAdapter
+    from tvwm.envs.episode_lifecycle import EpisodeEnvironment as ManiSkillAdapter
     from tvwm.envs.contracts import compare_recorded_contract
     plan=read(ROOT/'configs/phase1/nominal.json'); evidence=read(a.preflight/'report.json')
     resume=read(a.resume_check/'report.json'); collector=read(a.collector_check/'report.json')
@@ -96,6 +97,7 @@ def main():
     if not evidence['task']==resume['task']==collector['task']: raise ValueError('gate task mismatch')
     if not evidence['checkpoint_sha256']==resume['checkpoint_sha256']==collector['preflight_checkpoint_sha256']==sha256(a.preflight/'learner-envelope.pt'):
         raise ValueError('gate checkpoint mismatch')
+    if collector.get('environment_lifecycle')!='recreate_before_episode_v1': raise ValueError('collector lifecycle evidence required')
     if collector['code_sha256']!=code_hash(): raise ValueError('code/config changed after collector check; rerun check')
     if verify_sources()!=evidence['sources']: raise ValueError('source mismatch')
     if {k:md.version(k) for k in evidence['packages']}!=evidence['packages']: raise ValueError('package mismatch')
@@ -116,7 +118,7 @@ def main():
     compare_recorded_contract(env.contract,evidence['contract'],list(evidence['contract']))
     # Constructor/reset happens before RNG restoration. Fresh training never loads smoke weights.
     agent=Agent(cfg); replay=Buffer(cfg)
-    provenance=dict(task=evidence['task'],sources=evidence['sources'],config=vars(cfg),plan=plan,
+    provenance=dict(environment_lifecycle='recreate_before_episode_v1',task=evidence['task'],sources=evidence['sources'],config=vars(cfg),plan=plan,
                     code_sha256=code_hash(),packages=evidence['packages'],dependency_lock_sha256=evidence['dependency_lock_sha256'])
     counters=dict(transitions=0,updates=0,episode_index=0,evaluation_transitions=0,next_validation=0,
                   next_checkpoint=10000,best_score=None,best_model_file=None,best_model_sha256=None,

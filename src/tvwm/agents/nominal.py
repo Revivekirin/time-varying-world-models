@@ -69,7 +69,8 @@ def collect(env, agent, replay, counters, seed, *, learn=True, limit=300000, on_
     if complete:
         append_episode(replay, episode_tensor(observations,actions,rewards,terms,truncs))
         counters['episode_index'] += 1
-    return dict(length=len(actions),return_=sum(rewards),success=success,complete=complete,
+    return dict(environment_recreation_seconds=getattr(env,'last_recreation_seconds',0.),
+                environment_reset_seconds=getattr(env,'last_reset_seconds',0.),length=len(actions),return_=sum(rewards),success=success,complete=complete,
                 goal_progress=start_distance-goal_distance(env),final_goal_distance=goal_distance(env),
                 planner_seconds=planner_seconds,update_seconds=update_seconds,
                 trace=dict(obs=torch.stack(observations).cpu(),actions=torch.stack(actions).cpu(),

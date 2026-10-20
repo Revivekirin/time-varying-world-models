@@ -1,5 +1,5 @@
 {
-  "status": "PROPOSAL_NOT_APPROVED_FOR_LAUNCH",
+  "status": "APPROVED_CONDITIONAL_ON_CORRECTNESS_AND_RESOURCE_GATES",
   "tasks": ["PushCube-v1", "PickCube-v1"],
   "seed": 1,
   "environment_transitions": 300000,
