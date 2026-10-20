@@ -95,3 +95,27 @@ performs one fresh target episode and one warm-plus-target sequence, at most 150
 transitions and zero planner/optimizer calls. A2 failure with A1/B1 passing would
 prioritize history-dependent reset/state behavior, not conclusively distinguish
 controller state from hidden simulator state without examining per-field traces.
+
+## A2 original-history replay and first control-step localization
+
+VERIFIED from supplied server evidence: 50 original actions recovered from replay
+episode 2 of boundary SHA256 4f73b52a4d33d80db35c374d157f34fa45aaf0f1c8bd85cd1a15717cb77ab31f.
+A2 reset records match exactly; record 1 diverges in cube pose (max 4.487857222557068e-05)
+and angular velocity (4.638452082872391e-06). Linear velocity differs by
+1.5133991837501526e-07, within tolerance. No other recorded fields differ.
+Robot root pose was not captured by the original generic serializer; it is now
+captured as raw_pose. Missing _step_size is expected when interpolate=false.
+
+Pinned sapien_env.py:1031–1043 clears actor velocities and articulation root/joint
+velocities. Push task initialization sets cube pose at push_cube.py:168. This
+supports rejecting a simplistic unreset-visible-velocity explanation for these
+records; it does not prove that contact/solver caches or all physical state reset.
+INFERRED investigation priority is object/scene history-dependent state. Concrete
+hidden cause and a justified production fix remain UNRESOLVED.
+
+The next diagnostic captures all five substeps of only the first target control
+action, with native versus probed warm/fresh controls and explicit robot root state.
+At most 104 simulation transitions (two recorded 50-step warm episodes plus four
+target actions), zero planner/optimizer calls. Additional fetches are diagnostic
+instrumentation, and their effects must be evaluated separately. No production
+reset, planner, checkpoint or tolerance changes. Phase 1 remains NO-GO.

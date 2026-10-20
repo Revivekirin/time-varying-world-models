@@ -94,3 +94,22 @@ timeout --signal=TERM --kill-after=15s 420s \
 Maximum 150 environment transitions, zero act calls and zero optimizer updates.
 Share the extraction report.json and A2 summary.json. Warm manifests must now
 also bind boundary_sha256, which the extraction command generates automatically.
+
+## A2 first-control-step probe
+
+```bash
+timeout --signal=TERM --kill-after=15s 780s \
+  python scripts/phase1_root_cause.py \
+  --source results/phase1-push-collectorcheck-003 \
+  --warm-history results/phase1-push-warm-extract-001/warm-history.json \
+  --warm-comparison-only --first-control-only \
+  --out results/phase1-push-rootcause-a2-substeps-001
+```
+
+At most 104 environment transitions and zero planner/update calls. Four independent
+workers compare native/probed warm/fresh conditions. Only the first target action
+is executed; the two warm workers use the original recorded 50-action history.
+A2_probe-per-step.json includes all five substep comparisons under the legacy key
+first_substep_comparisons; first_divergent_physics_substep is one-based. Share the
+summary.json; probe effect comparisons determine whether substep findings can be
+related to native execution. Original artifacts are preserved.

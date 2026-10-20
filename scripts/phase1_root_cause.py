@@ -63,12 +63,16 @@ def snapshot(env,obs,missing):
     def capture(name,fn):
         try:
             for key,value in flatten(fn(),name).items():
-                if torch.is_tensor(value): state[key]=value.detach().cpu().clone()
+                if hasattr(value,'raw_pose'): state[key]=value.raw_pose.detach().cpu().clone()
+                elif torch.is_tensor(value): state[key]=value.detach().cpu().clone()
                 elif isinstance(value,(int,float,bool,str)) or value is None: state[key]=value
                 else: missing.add(key+': unsupported '+type(value).__name__)
         except Exception as e: missing.add(name+': '+repr(e))
     robot=env.base.agent.robot; obj=env.base.obj
     capture('robot/qpos',robot.get_qpos);capture('robot/qvel',robot.get_qvel)
+    capture('robot/root_pose',lambda:robot.pose.raw_pose)
+    capture('robot/root_linear_velocity',lambda:robot.root_linear_velocity)
+    capture('robot/root_angular_velocity',lambda:robot.root_angular_velocity)
     capture('object/pose',lambda:obj.pose.raw_pose)
     capture('object/linear_velocity',lambda:obj.linear_velocity)
     capture('object/angular_velocity',lambda:obj.angular_velocity)
@@ -76,6 +80,7 @@ def snapshot(env,obs,missing):
     capture('controller/state',env.base.agent.controller.get_state)
     for name,controller in env.base.agent.controller.controllers.items():
         for field in ['_target_qpos','_start_qpos','_step','_step_size']:
+            if field=='_step_size' and not controller.config.interpolate: continue
             capture('controller/'+name+'/'+field,lambda c=controller,f=field:getattr(c,f))
     return state
 
@@ -127,7 +132,7 @@ def worker(a):
     if a.worker.startswith('env'):
         from tvwm.envs.maniskill import ManiSkillAdapter
         env=ManiSkillAdapter('PushCube-v1');env.reset(seed=1);missing=set()
-        if a.worker=='env-warm':
+        if a.worker in ('env-warm','env-warm-probe'):
             history=json.loads(a.warm_history.read_text())
             if history.get('original_recording') is not True: raise ValueError('original recorded warm history required')
             if history.get('boundary_sha256')!=digest(a.source/'boundary.pt'): raise ValueError('warm history must bind original boundary checkpoint')
@@ -154,26 +159,27 @@ def worker(a):
                       enhanced_determinism=env.base._enhanced_determinism,reconfiguration_freq=env.base.reconfiguration_freq,restored_state='RNG only; checkpoint has no simulator state')
         output['records'].append(snapshot(env,obs,missing))
         probe=[]
-        if a.worker=='env-probe':
+        if a.worker in ('env-probe','env-warm-probe'):
             from tvwm.envs.maniskill import observation
             original_hook=env.base._after_simulation_step
             substep=[0]
             def probe_hook():
                 original_hook(); substep[0]+=1
-                if substep[0]==1:
+                if substep[0]==1 or a.first_control_only:
                     env.base.scene._gpu_fetch_all()
                     probe.append(snapshot(env,observation(env.base.get_obs()),missing))
             env.base._after_simulation_step=probe_hook
-        for index,action in enumerate(trace['actions']):
-            if a.worker=='env-probe': substep[0]=0
+        actions=trace['actions'][:1] if a.first_control_only else trace['actions']
+        for index,action in enumerate(actions):
+            if a.worker in ('env-probe','env-warm-probe'): substep[0]=0
             obs,_,term,trunc,_=env.step(action)
             record=snapshot(env,obs,missing);record['applied_action']=action.cpu().clone();output['records'].append(record)
             if (term or trunc)!=(index==len(trace['actions'])-1): raise ValueError('target boundary mismatch')
-        if a.worker=='env-probe':
+        if a.worker in ('env-probe','env-warm-probe'):
             output['first_substep_records']=probe
             output['probe_limitation']='Additional GPU fetch and host reads may perturb execution; compare probe control trajectory against native env-a.'
         output['missing']=sorted(missing)+['PhysX contact/solver caches and hidden GPU state unavailable.']
-        output['instrumentation']=('Separate first-substep GPU fetch probe enabled; production unchanged.' if a.worker=='env-probe' else
+        output['instrumentation']=('Separate first-substep GPU fetch probe enabled; production unchanged.' if a.worker in ('env-probe','env-warm-probe') else
             'Native GPU fetch occurs after five physics substeps; control-step records only, no stepping hooks.')
         env.close()
     else:
@@ -221,13 +227,15 @@ def main():
     p.add_argument('--warm-history',type=Path)
     p.add_argument('--planner-only',action='store_true')
     p.add_argument('--warm-comparison-only',action='store_true')
-    p.add_argument('--worker',choices=['env-fresh','env-warm','env-probe','planner-ref','planner-child','planner-all-t0'])
+    p.add_argument('--first-control-only',action='store_true')
+    p.add_argument('--worker',choices=['env-fresh','env-warm','env-probe','env-warm-probe','planner-ref','planner-child','planner-all-t0'])
     p.add_argument('--destination',type=Path)
     a=p.parse_args()
     if a.worker: worker(a);return
     if a.out is None: p.error('--out required')
     if a.planner_only and a.warm_history: p.error('--planner-only cannot include warm history')
     if a.warm_comparison_only and (a.planner_only or not a.warm_history): p.error('--warm-comparison-only requires warm history and excludes planner-only')
+    if a.first_control_only and not a.warm_comparison_only: p.error('--first-control-only requires --warm-comparison-only')
     a.out.mkdir(parents=True,exist_ok=False)
     required=['reference.pt','child.pt','boundary.pt']
     hashes={name:digest(a.source/name) for name in required}
@@ -241,11 +249,15 @@ def main():
     if a.warm_comparison_only:
         jobs=[('env-fresh','env-b'),('env-warm','env-warm')]
         report['max_simulation_transitions']=150;report['max_planner_calls']=0
+        if a.first_control_only:
+            jobs += [('env-probe','probe-b'),('env-warm-probe','probe-warm')]
+            report['max_simulation_transitions']=104
     try:
         import torch
         report['worker_errors']={}
         for mode,name in jobs:
             command=[sys.executable,__file__,'--source',str(a.source),'--worker',mode,'--destination',str(a.out/(name+'.pt'))]
+            if a.first_control_only:command+=['--first-control-only']
             if a.warm_history:command+=['--warm-history',str(a.warm_history)]
             try:
                 with (a.out/(name+'.log')).open('w') as log:
@@ -261,6 +273,8 @@ def main():
         if a.warm_history:pairs.append(('A2','env-warm','env-b'))
         else:report['comparisons']['A2']={'status':'UNRESOLVED','reason':'Original recorded warm episode actions unavailable; no replacement history generated.'}
         if a.warm_comparison_only: pairs=[pair for pair in pairs if pair[0]=='A2']
+        if a.first_control_only:
+            pairs += [('A2_probe','probe-warm','probe-b'),('warm_probe_effect','env-warm','probe-warm'),('fresh_probe_effect','env-b','probe-b')]
         for label,l,r in pairs:
             if l in report['worker_errors'] or r in report['worker_errors']:
                 report['comparisons'][label]={'status':'UNRESOLVED','reason':'worker error; see worker_errors and logs'}
@@ -269,7 +283,7 @@ def main():
             steps=[compare(flatten(x),flatten(y)) for x,y in zip(left['records'],right['records'])]
             equal_lengths=len(left['records'])==len(right['records'])
             detail={'steps':steps,'same_record_count':equal_lengths,'missing':left['missing']+right['missing']}
-            if label=='A1_probe':
+            if label in ('A1_probe','A2_probe'):
                 detail['first_substep_comparisons']=[compare(flatten(x),flatten(y)) for x,y in zip(left['first_substep_records'],right['first_substep_records'])]
             if label.startswith('B'):
                 detail['same_model']=left['model_sha256']==right['model_sha256']==left['model_sha256_after']==right['model_sha256_after']
@@ -279,6 +293,10 @@ def main():
             detail['first_nonexact_record']=next((i for i,s in enumerate(steps) if not s['exact']),None)
             detail['first_outside_tolerance_record']=next((i for i,s in enumerate(steps) if not s['within_tolerance']),None)
             passed=equal_lengths and all(s['within_tolerance'] for s in steps)
+            if label=='A2_probe':
+                substeps=detail['first_substep_comparisons']
+                detail['first_divergent_physics_substep']=next((i+1 for i,item in enumerate(substeps) if not item['within_tolerance']),None)
+                passed &= len(left['first_substep_records'])==len(right['first_substep_records'])==5 and all(item['within_tolerance'] for item in substeps)
             if label.startswith('B'):passed &= detail['same_model'] and detail['restored_rng_left']['exact'] and detail['restored_rng_right']['exact']
             detail['status']=('SENSITIVITY_DIAGNOSTIC' if label=='B2' else ('PASS' if passed else 'FAIL'))
             write(a.out/(label+'-per-step.json'),detail)
