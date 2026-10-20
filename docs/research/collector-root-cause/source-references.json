@@ -1,0 +1,118 @@
+{
+  "src/tvwm/envs/maniskill.py": [
+    {
+      "line": 74,
+      "text": "def reset(self, seed):"
+    },
+    {
+      "line": 81,
+      "text": "def step(self, action):"
+    }
+  ],
+  "src/tvwm/agents/nominal.py": [
+    {
+      "line": 28,
+      "text": "def training_seed(seed, episode):"
+    },
+    {
+      "line": 46,
+      "text": "def collect(env, agent, replay, counters, seed, *, learn=True, limit=300000, on_update=None):"
+    }
+  ],
+  "src/tvwm/agents/resume.py": [
+    {
+      "line": 14,
+      "text": "def restore_rng(state):"
+    },
+    {
+      "line": 20,
+      "text": "def save_learner(path, agent, replay, counters, provenance):"
+    },
+    {
+      "line": 34,
+      "text": "def load_learner(path, agent, replay, provenance):"
+    },
+    {
+      "line": 44,
+      "text": "restore_rng(state['rng'])"
+    }
+  ],
+  "external/ManiSkill/mani_skill/envs/sapien_env.py": [
+    {
+      "line": 861,
+      "text": "def reset(self, seed: Union[None, int, list[int]] = None, options: Union[None, dict] = None) -> tuple[Any, dict]:"
+    },
+    {
+      "line": 964,
+      "text": "self.scene._gpu_fetch_all()"
+    },
+    {
+      "line": 970,
+      "text": "controller.reset()"
+    },
+    {
+      "line": 972,
+      "text": "self.agent.controller.reset()"
+    },
+    {
+      "line": 1043,
+      "text": "self.scene._gpu_fetch_all()"
+    },
+    {
+      "line": 1098,
+      "text": "self.agent.controller.reset()"
+    },
+    {
+      "line": 1136,
+      "text": "self.scene.step()"
+    },
+    {
+      "line": 1140,
+      "text": "self.scene._gpu_fetch_all()"
+    },
+    {
+      "line": 1314,
+      "text": "self.scene._gpu_fetch_all()"
+    }
+  ],
+  "external/ManiSkill/mani_skill/agents/controllers/pd_joint_pos.py": [
+    {
+      "line": 65,
+      "text": "def reset(self):"
+    },
+    {
+      "line": 81,
+      "text": "def set_action(self, action: torch.Tensor):"
+    },
+    {
+      "line": 108,
+      "text": "def get_state(self) -> dict:"
+    },
+    {
+      "line": 214,
+      "text": "def set_action(self, action: torch.Tensor):"
+    }
+  ],
+  "external/tdmpc2/tdmpc2/tdmpc2.py": [
+    {
+      "line": 98,
+      "text": "def act(self, obs, t0=False, eval_mode=False, task=None):"
+    },
+    {
+      "line": 166,
+      "text": "if not t0:"
+    },
+    {
+      "line": 185,
+      "text": "elite_idxs = torch.topk(value.squeeze(1), self.cfg.num_elites, dim=0).indices"
+    },
+    {
+      "line": 200,
+      "text": "rand_idx = math.gumbel_softmax_sample(score.squeeze(1))"
+    },
+    {
+      "line": 205,
+      "text": "self._prev_mean.copy_(mean)"
+    }
+  ]
+}
