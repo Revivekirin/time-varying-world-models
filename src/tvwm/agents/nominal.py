@@ -43,7 +43,7 @@ def append_episode(replay, episode):
     return replay.add(episode)
 
 
-def collect(env, agent, replay, counters, seed, *, learn=True, limit=300000, on_update=None):
+def collect(env, agent, replay, counters, seed, *, learn=True, limit=300000, on_update=None, on_step=None):
     """Update from completed replay, then insert the newly completed episode (upstream order)."""
     obs, _ = env.reset(seed=training_seed(seed, counters['episode_index']))
     observations=[obs.clone()]; actions=[]; rewards=[]; terms=[]; truncs=[]
@@ -57,6 +57,7 @@ def collect(env, agent, replay, counters, seed, *, learn=True, limit=300000, on_
         observations.append(obs.clone()); actions.append(action.clone()); rewards.append(float(reward))
         terms.append(term); truncs.append(trunc); success |= bool(info['success'].item())
         counters['transitions'] += 1
+        if on_step: on_step(counters)
         if learn:
             for _ in range(updates_at(step)):
                 t=time.monotonic(); metrics={k:float(v) for k,v in agent.update(replay).items()}

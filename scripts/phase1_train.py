@@ -3,6 +3,7 @@ import argparse
 import importlib.metadata as md
 import json
 import math
+import os
 from pathlib import Path
 import shutil
 import signal
@@ -37,6 +38,8 @@ def resources(out, plan):
 
 def evaluate(a):
     import torch
+    from tqdm.auto import tqdm
+    from tvwm.utils.monitoring import EvaluationVideo
     from tvwm.agents.upstream import load_api
     from tvwm.agents.nominal import seed_all,goal_distance,atomic_json
     from tvwm.envs.episode_lifecycle import EpisodeEnvironment as ManiSkillAdapter
@@ -46,18 +49,24 @@ def evaluate(a):
     cfg=cfg_to_dataclass(OmegaConf.create(read(a.out/'resolved_config.json')))
     env=ManiSkillAdapter(cfg.task); agent=Agent(cfg); agent.load(a.out/('best-model.pt' if a.heldout else 'evaluation-model.pt'))
     agent.model.eval(); agent.model.requires_grad_(False)
-    episodes=[]; steps=0; planner=0.
+    episodes=[]; steps=0; planner=0.; videos=[]
     plan=read(a.out/'nominal_config.json')
     seeds=(range(plan['heldout_seed_start'],plan['heldout_seed_start']+plan['heldout_episodes'])
            if a.heldout else plan['validation_seeds'])
-    for seed in seeds:
+    video_directory=a.out/'videos'/a.eval_output.stem
+    for episode_index,seed in enumerate(tqdm(seeds,desc='Heldout' if a.heldout else 'Validation',unit='episode',dynamic_ncols=True)):
         seed_all(seed); obs,_=env.reset(seed=seed); initial=goal_distance(env); ret=0.; success=False
+        video=EvaluationVideo(video_directory/f'seed-{seed}.mp4') if episode_index<a.video_episodes else None
+        if video: video.frame(env)
         for t in range(env.horizon):
             started=time.monotonic(); action=agent.act(obs,t0=t==0,eval_mode=True)
             torch.cuda.synchronize(); planner+=time.monotonic()-started
             obs,r,term,trunc,info=env.step(action); ret+=float(r); steps+=1; success|=bool(info['success'].item())
+            if video: video.frame(env)
             if term or trunc: break
         else: raise AssertionError('evaluation missing episode boundary')
+        if video:
+            video.close(); videos.append(dict(path=str(video.path.resolve()),seed=seed,success=success,return_=ret))
         episodes.append(dict(seed=seed,length=t+1,return_=ret,success=success,
                              terminal_success=bool(info['success'].item()),goal_progress=initial-goal_distance(env),
                              final_goal_distance=goal_distance(env),terminated=term,truncated=trunc,
@@ -66,6 +75,9 @@ def evaluate(a):
                 success_rate=sum(e['success'] for e in episodes)/len(episodes),
                 mean_return=sum(e['return_'] for e in episodes)/len(episodes),
                 peak_allocated_bytes=torch.cuda.max_memory_allocated(),peak_reserved_bytes=torch.cuda.max_memory_reserved())
+    result.update(videos=videos,return_std=float(__import__('numpy').std([ep['return_'] for ep in episodes])),
+                  goal_progress_mean=sum(ep['goal_progress'] for ep in episodes)/len(episodes),
+                  terminal_success_rate=sum(ep['terminal_success'] for ep in episodes)/len(episodes))
     result['selection_used']=False if a.heldout else True
     result['model_sha256']=sha256(a.out/('best-model.pt' if a.heldout else 'evaluation-model.pt'))
     if a.eval_output.exists(): raise FileExistsError(a.eval_output)
@@ -80,6 +92,10 @@ def main():
     p.add_argument('--acknowledge-rollback',action='store_true')
     p.add_argument('--eval-output',type=Path)
     p.add_argument('--heldout',action='store_true')
+    p.add_argument('--wandb-mode',choices=['online','offline','disabled'],default=os.environ.get('WANDB_MODE','offline'))
+    p.add_argument('--wandb-project',default=os.environ.get('WANDB_PROJECT','tvwm-phase1'))
+    p.add_argument('--wandb-entity',default=os.environ.get('WANDB_ENTITY'))
+    p.add_argument('--video-episodes',type=int,choices=[0,1,2],default=2)
     a=p.parse_args()
     if a.eval_output: evaluate(a); return 0
     if a.approve_budget!=300000: p.error('explicit --approve-budget 300000 required; 24h/task and resource limits apply')
@@ -163,24 +179,37 @@ def main():
                                          nominal_only=True,seed=1,model_size=5,batch_size=256))
     attempt=str(time.time_ns()); stop=[False]
     signal.signal(signal.SIGTERM,lambda *_:stop.__setitem__(0,True)); signal.signal(signal.SIGINT,lambda *_:stop.__setitem__(0,True))
+    from tvwm.utils.monitoring import Monitor
+    tracking=Monitor(a.out,evidence['task'],attempt,counters,provenance,a.wandb_mode,a.wandb_project,a.wandb_entity)
+    atomic_json(a.out/f'observability-{attempt}.json',dict(schema_version=1,wandb_mode=a.wandb_mode,
+                project=a.wandb_project,entity=a.wandb_entity,video_episodes=a.video_episodes,video_fps=20,
+                loss_log_every_updates=100,packages={name:md.version(name) for name in
+                  (['tqdm']+(['wandb'] if a.wandb_mode!='disabled' else [])+(['imageio','imageio-ffmpeg'] if a.video_episodes else []))}))
     metrics=(a.out/f'metrics-{attempt}.jsonl').open('a',buffering=1)
     telemetry=(a.out/f'gpu-{attempt}.csv').open('w')
     monitor=subprocess.Popen(['nvidia-smi','--query-gpu=timestamp,index,memory.used,memory.free,utilization.gpu',
                               '--format=csv','-l','1'],stdout=telemetry)
     def elapsed(): return prior_wall+time.monotonic()-started
-    def log(kind,data): metrics.write(json.dumps(dict(kind=kind,attempt=attempt,**data),allow_nan=False)+'\n')
+    def log(kind,data):
+        metrics.write(json.dumps(dict(kind=kind,attempt=attempt,**data),allow_nan=False)+'\n')
+        if kind!='update' or data['updates']%100==0: tracking.emit(kind,data)
     def update(data):
+        tracking.learner(data)
         log('update',data)
         if data['updates']%100==0: log('resources',resources(a.out,plan))
     def checkpoint(name):
+        tracking.phase('Checkpoint '+name)
         counters['wall_seconds']=elapsed(); counters['replay_device']=str(replay._storage_device)
         resources(a.out,plan)
         save_learner(a.out/name,agent,replay,counters,provenance)
-        atomic_json(a.out/(Path(name).stem+'.json'),dict(sha256=sha256(a.out/name),replay_device=str(replay._storage_device),counters=dict(counters)))
+        checksum=sha256(a.out/name)
+        atomic_json(a.out/(Path(name).stem+'.json'),dict(sha256=checksum,replay_device=str(replay._storage_device),counters=dict(counters)))
+        tracking.checkpoint(name,checksum)
     def validate():
+        tracking.phase('Validation')
         destination=a.out/f'validation-{counters["transitions"]:09d}-{attempt}.json'
         agent.save(a.out/'evaluation-model.pt')
-        subprocess.run([sys.executable,__file__,'--out',str(a.out),'--eval-output',str(destination)],check=True,timeout=600)
+        subprocess.run([sys.executable,__file__,'--out',str(a.out),'--eval-output',str(destination),'--video-episodes',str(a.video_episodes)],check=True,timeout=600)
         result=read(destination); counters['evaluation_transitions']+=result['transitions']
         result['training_transitions']=counters['transitions']; result['learner_updates']=counters['updates']
         result['checkpoint_model_sha256']=sha256(a.out/'evaluation-model.pt'); atomic_json(destination,result)
@@ -207,14 +236,13 @@ def main():
         if counters['next_validation']==0: validate()
         while counters['transitions']<plan['environment_transitions']:
             if stop[0] or elapsed()>=plan['max_wall_seconds_per_task']-900: break
+            tracking.phase('Random collection' if counters['transitions']<=1000 else evidence['task'])
             counters['boundary']=False
-            result=collect(env,agent,replay,counters,plan['seed'],on_update=update)
+            result=collect(env,agent,replay,counters,plan['seed'],on_update=update,on_step=tracking.step)
             result.pop('trace'); counters['boundary']=result['complete']
             counters['wall_seconds']=elapsed()
             log('episode',dict(**result,**counters)); log('resources',resources(a.out,plan))
             atomic_json(a.out/'progress.json',dict(counters))
-            if counters['transitions']%1000==0:
-                print(json.dumps(dict(task=evidence['task'],**counters)),flush=True)
             if counters['transitions']>=counters['next_validation'] and (result['complete'] or counters['transitions']==300000): validate()
             if result['complete'] and not (a.out/'latest.pt').exists(): checkpoint('latest.pt')
             if result['complete'] and counters['transitions']>=counters['next_checkpoint']:
@@ -238,6 +266,7 @@ def main():
         atomic_json(a.out/f'report-{attempt}.json',dict(status=status,counters=counters,provenance=provenance,
                     initial_resources=initial_resources,competence='UNRESOLVED: inspect validation seed distribution; no Phase 2 authorization'))
         monitor.terminate(); monitor.wait(timeout=10); telemetry.close(); metrics.close(); env.close()
+        tracking.close(status)
     print(json.dumps(dict(status=status,counters=counters),indent=2))
     return 0 if status=='COMPLETE_NOMINAL_TRAINING' else 2
 
