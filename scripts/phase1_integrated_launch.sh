@@ -22,13 +22,7 @@ mkdir -p "$workflow"
 stage=unit-tests
 trap 'echo "Stopped at $stage. No automatic retry. Inspect logs under $workflow." >&2' ERR
 # A skipped GPU/dependency test does not qualify as successful server verification.
-PYTHONPATH=src python - <<'PY' 2>&1 | tee "$workflow/unit-tests.log"
-import unittest
-suite=unittest.defaultTestLoader.discover('tests')
-result=unittest.TextTestRunner(verbosity=2).run(suite)
-if not result.wasSuccessful() or result.skipped:
-    raise SystemExit('Integrated server gate requires all tests passing without skips')
-PY
+python scripts/run_server_tests.py 2>&1 | tee "$workflow/unit-tests.log"
 stage=push-collector
 timeout --signal=TERM --kill-after=15s 600s \
   python scripts/phase1_collector_check.py \

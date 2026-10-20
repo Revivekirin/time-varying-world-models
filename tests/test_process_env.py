@@ -6,13 +6,13 @@ from tvwm.envs.process_env import WorkerTransport, WorkerError, EpisodeEnvironme
 
 
 def fake_worker(connection, mode):
-    if mode=='exit': os._exit(17)
-    if mode=='hang': time.sleep(60)
     if mode=='error':
         connection.send({'status':'error','error':'simulated failure','traceback':'child traceback'})
         connection.close(); return
     connection.send({'status':'ok','payload':os.getpid()})
     command,_=connection.recv()
+    if mode=='exit': os._exit(17)
+    if mode=='hang': time.sleep(60)
     if mode=='close_exit': os._exit(19)
     connection.send({'status':'ok','payload':command})
     connection.close()
@@ -28,7 +28,8 @@ class ProcessTests(unittest.TestCase):
 
     def test_native_exit(self):
         worker=WorkerTransport(fake_worker,('exit',),timeout=5)
-        with self.assertRaisesRegex(WorkerError,'exit'): worker.receive()
+        self.assertNotEqual(worker.receive(),os.getpid())
+        with self.assertRaisesRegex(WorkerError,'exit'): worker.request('exit')
         self.assertFalse(worker.process.is_alive())
         self.assertTrue(worker.connection.closed)
 
@@ -38,8 +39,10 @@ class ProcessTests(unittest.TestCase):
         self.assertFalse(worker.process.is_alive())
 
     def test_timeout_cleanup(self):
-        worker=WorkerTransport(fake_worker,('hang',),timeout=.3)
-        with self.assertRaisesRegex(WorkerError,'timeout'): worker.receive()
+        worker=WorkerTransport(fake_worker,('hang',),timeout=5)
+        self.assertNotEqual(worker.receive(),os.getpid())
+        worker.timeout=.3
+        with self.assertRaisesRegex(WorkerError,'timeout'): worker.request('hang')
         self.assertFalse(worker.process.is_alive())
         self.assertTrue(worker.connection.closed)
 
@@ -53,16 +56,13 @@ class ProcessTests(unittest.TestCase):
         env=EpisodeEnvironment('PushCube-v1'); env.done=False
         with self.assertRaisesRegex(RuntimeError,'incomplete'): env.finish_episode()
 
-try:
-    import torch
-    import numpy as np
-except ImportError:
-    torch=None
-
-
-@unittest.skipIf(torch is None,'requires server tensor dependencies')
 class ParentRngTests(unittest.TestCase):
     def test_reset_preserves_all_current_rng_streams(self):
+        try:
+            import torch
+            import numpy as np
+        except ImportError:
+            self.skipTest('requires server tensor dependencies')
         from unittest.mock import patch
         from tvwm.agents.resume import rng_state
         import random

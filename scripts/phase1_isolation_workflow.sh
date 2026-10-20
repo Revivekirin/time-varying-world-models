@@ -12,12 +12,7 @@ for destination in "$workflow" "$push_gate" "$pick_gate" "$resume_out"; do
   if [[ -e "$destination" ]]; then echo "Refusing existing output: $destination" >&2; exit 1; fi
 done
 mkdir -p "$workflow"
-PYTHONPATH=src python - <<'PY' 2>&1 | tee "$workflow/unit-tests.log"
-import unittest
-result=unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.discover('tests'))
-if not result.wasSuccessful() or result.skipped:
-    raise SystemExit('Server gate requires all tests passing without skips')
-PY
+python scripts/run_server_tests.py 2>&1 | tee "$workflow/unit-tests.log"
 timeout --signal=TERM --kill-after=15s 600s python scripts/phase1_collector_check.py \
  --preflight results/phase1-push-preflight-002 --resume-check results/phase1-push-resumecheck-001 \
  --out "$push_gate" 2>&1 | tee "$workflow/push-collector.log"
