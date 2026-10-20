@@ -21,7 +21,12 @@ def scalar_metrics(kind, data, counters):
         axes['perf/learner_updates_per_s']=1/max(data['seconds'],1e-12)
     else:
         axes.update({dst:float(data[src]) for src,dst in keys.get(kind,{}).items() if src in data})
-    if kind=='episode': axes['perf/planner_ms_per_transition']=1000*data['planner_seconds']/max(data['length'],1)
+    if kind=='episode':
+        axes['perf/planner_ms_per_transition']=1000*data['planner_seconds']/max(data['length'],1)
+        worker=data.get('simulator_worker',{})
+        if 'shutdown_seconds' in worker: axes['time/worker_shutdown_s']=worker['shutdown_seconds']
+        for stage in ('startup','shutdown'):
+            for key,value in worker.get(stage,{}).items(): axes[f'gpu/worker_{stage}_{key}']=value
     return axes
 
 
@@ -109,7 +114,7 @@ class EvaluationVideo:
         from tvwm.agents.resume import rng_state,restore_rng
         state=rng_state()
         try:
-            pixels=env.base.render_rgb_array()
+            pixels=env.render_rgb_array() if hasattr(env,'render_rgb_array') else env.base.render_rgb_array()
             if pixels is None: raise RuntimeError('evaluation renderer returned no RGB frame')
             if hasattr(pixels,'detach'):pixels=pixels.detach().cpu().numpy()
             pixels=np.asarray(pixels)

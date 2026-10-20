@@ -30,6 +30,7 @@ def training_seed(seed, episode):
 
 
 def goal_distance(env):
+    if callable(getattr(env,'goal_distance',None)): return env.goal_distance()
     if env.task == 'PushCube-v1':
         return float(torch.linalg.vector_norm(env.base.obj.pose.p[..., :2]-env.base.goal_region.pose.p[..., :2]))
     return float(torch.linalg.vector_norm(env.base.cube.pose.p-env.base.goal_site.pose.p))
@@ -68,9 +69,14 @@ def collect(env, agent, replay, counters, seed, *, learn=True, limit=300000, on_
         if term or trunc: break
     complete=bool(terms and (terms[-1] or truncs[-1]))
     if complete:
+        # A close/native-exit failure must be observed before committing replay.
+        if hasattr(env,'finish_episode'): env.finish_episode()
         append_episode(replay, episode_tensor(observations,actions,rewards,terms,truncs))
         counters['episode_index'] += 1
-    return dict(environment_recreation_seconds=getattr(env,'last_recreation_seconds',0.),
+    elif hasattr(env,'finish_episode'):
+        # The exact final budget may end mid-episode; discard it and release worker.
+        env.close()
+    return dict(simulator_worker=getattr(env,'worker_metrics',{}),environment_recreation_seconds=getattr(env,'last_recreation_seconds',0.),
                 environment_reset_seconds=getattr(env,'last_reset_seconds',0.),length=len(actions),return_=sum(rewards),success=success,complete=complete,
                 goal_progress=start_distance-goal_distance(env),final_goal_distance=goal_distance(env),
                 planner_seconds=planner_seconds,update_seconds=update_seconds,

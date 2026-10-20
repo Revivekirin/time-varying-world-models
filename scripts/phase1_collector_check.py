@@ -18,13 +18,14 @@ def main():
     a=p.parse_args(); start=time.monotonic()
     if not a.child: a.out.mkdir(parents=True,exist_ok=False)
     report=dict(status='FAIL',optimizer_updates=0,maximum_total_transitions=250)
+    env=None
     try:
         import torch
         import importlib.metadata as md
         from tvwm.agents.upstream import load_api,verify_sources
         from tvwm.agents.resume import load_learner,save_learner
         from tvwm.agents.nominal import collect,empty_replay,code_hash,atomic_json
-        from tvwm.envs.episode_lifecycle import EpisodeEnvironment as ManiSkillAdapter
+        from tvwm.envs.process_env import EpisodeEnvironment as ManiSkillAdapter
         evidence=json.loads((a.preflight/'report.json').read_text())
         resume=json.loads((a.resume_check/'report.json').read_text())
         assert evidence['status']=='PASS_COMPATIBILITY_ONLY'
@@ -45,7 +46,7 @@ def main():
             counters=load_learner(a.out/'boundary.pt',agent,replay,provenance)
             episode=collect(env,agent,replay,counters,1,learn=False)
             torch.save(dict(trace=episode['trace'],counters=counters,
-                            environment_recreation_seconds=episode['environment_recreation_seconds']),a.out/'child.pt')
+                            simulator_worker=episode['simulator_worker'],environment_recreation_seconds=episode['environment_recreation_seconds']),a.out/'child.pt')
             env.close(); return 0
         counters=load_learner(a.preflight/'learner-envelope.pt',agent,replay,provenance)
         warm=collect(env,agent,replay,counters,1,learn=False)
@@ -61,17 +62,18 @@ def main():
         # Release parent CUDA allocations before starting the independent simulator.
         ref=reference['trace']; expected=dict(counters)
         torch.save(dict(trace=ref,counters=expected),a.out/'reference.pt')
-        del agent,replay,env; torch.cuda.empty_cache()
+        del agent,replay; env=None; torch.cuda.empty_cache()
         subprocess.run([sys.executable,__file__,'--preflight',str(a.preflight),'--resume-check',str(a.resume_check),
                         '--out',str(a.out),'--child'],check=True,timeout=180)
         child=torch.load(a.out/'child.pt',weights_only=False)
-        report['environment_lifecycle']='recreate_before_episode_v1'
+        report['environment_lifecycle']='spawn_per_episode_v1'
         report['environment_recreation_seconds']={'warm':warm['environment_recreation_seconds'],
               'reference':reference['environment_recreation_seconds'],'child':child['environment_recreation_seconds']}
         mean_recreation=sum(report['environment_recreation_seconds'].values())/3
         report['recreation_overhead_estimate']={'mean_measured_seconds':mean_recreation,
             'added_seconds_for_6000_training_episodes':6000*mean_recreation,
             'classification':'INFERRED from three compatibility episodes; not measured full training time'}
+        report['simulator_workers']=[warm['simulator_worker'],reference['simulator_worker'],child['simulator_worker']]
         report['task']=evidence['task']
         report['transitions']=warm['length']+reference['length']+len(child['trace']['actions'])
         report['reference_counters']=expected
@@ -112,6 +114,10 @@ def main():
                       max_abs_differences=differences,restored_final_counters=expected,
                       limitation='Tested episode-boundary continuation only; no mid-episode simulator restore or universal GPU determinism claim.')
     except Exception as e: report.update(error=repr(e),traceback=traceback.format_exc())
+    finally:
+        if env is not None:
+            try: env.close()
+            except Exception as error: report.update(status='FAIL',cleanup_error=repr(error))
     report['wall_seconds']=time.monotonic()-start
     (a.out/'report.json').write_text(json.dumps(report,indent=2)+'\n'); print(json.dumps(report,indent=2))
     return 0 if report['status']=='PASS_COLLECTOR_BOUNDARY' else 1

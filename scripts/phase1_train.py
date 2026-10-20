@@ -42,46 +42,50 @@ def evaluate(a):
     from tvwm.utils.monitoring import EvaluationVideo
     from tvwm.agents.upstream import load_api
     from tvwm.agents.nominal import seed_all,goal_distance,atomic_json
-    from tvwm.envs.episode_lifecycle import EpisodeEnvironment as ManiSkillAdapter
+    from tvwm.envs.process_env import EpisodeEnvironment as ManiSkillAdapter
     Agent,_=load_api()
     from common.parser import cfg_to_dataclass
     from omegaconf import OmegaConf
     cfg=cfg_to_dataclass(OmegaConf.create(read(a.out/'resolved_config.json')))
     env=ManiSkillAdapter(cfg.task); agent=Agent(cfg); agent.load(a.out/('best-model.pt' if a.heldout else 'evaluation-model.pt'))
     agent.model.eval(); agent.model.requires_grad_(False)
-    episodes=[]; steps=0; planner=0.; videos=[]
-    plan=read(a.out/'nominal_config.json')
-    seeds=(range(plan['heldout_seed_start'],plan['heldout_seed_start']+plan['heldout_episodes'])
-           if a.heldout else plan['validation_seeds'])
-    video_directory=a.out/'videos'/a.eval_output.stem
-    for episode_index,seed in enumerate(tqdm(seeds,desc='Heldout' if a.heldout else 'Validation',unit='episode',dynamic_ncols=True)):
-        seed_all(seed); obs,_=env.reset(seed=seed); initial=goal_distance(env); ret=0.; success=False
-        video=EvaluationVideo(video_directory/f'seed-{seed}.mp4') if episode_index<a.video_episodes else None
-        if video: video.frame(env)
-        for t in range(env.horizon):
-            started=time.monotonic(); action=agent.act(obs,t0=t==0,eval_mode=True)
-            torch.cuda.synchronize(); planner+=time.monotonic()-started
-            obs,r,term,trunc,info=env.step(action); ret+=float(r); steps+=1; success|=bool(info['success'].item())
+    try:
+        episodes=[]; steps=0; planner=0.; videos=[]
+        plan=read(a.out/'nominal_config.json')
+        seeds=(range(plan['heldout_seed_start'],plan['heldout_seed_start']+plan['heldout_episodes'])
+               if a.heldout else plan['validation_seeds'])
+        video_directory=a.out/'videos'/a.eval_output.stem
+        for episode_index,seed in enumerate(tqdm(seeds,desc='Heldout' if a.heldout else 'Validation',unit='episode',dynamic_ncols=True)):
+            seed_all(seed); obs,_=env.reset(seed=seed); initial=goal_distance(env); ret=0.; success=False
+            video=EvaluationVideo(video_directory/f'seed-{seed}.mp4') if episode_index<a.video_episodes else None
             if video: video.frame(env)
-            if term or trunc: break
-        else: raise AssertionError('evaluation missing episode boundary')
-        if video:
-            video.close(); videos.append(dict(path=str(video.path.resolve()),seed=seed,success=success,return_=ret))
-        episodes.append(dict(seed=seed,length=t+1,return_=ret,success=success,
-                             terminal_success=bool(info['success'].item()),goal_progress=initial-goal_distance(env),
-                             final_goal_distance=goal_distance(env),terminated=term,truncated=trunc,
-                             environment_recreation_seconds=env.last_recreation_seconds))
-    result=dict(status='PASS',episodes=episodes,transitions=steps,updates=0,planner_seconds=planner,
-                success_rate=sum(e['success'] for e in episodes)/len(episodes),
-                mean_return=sum(e['return_'] for e in episodes)/len(episodes),
-                peak_allocated_bytes=torch.cuda.max_memory_allocated(),peak_reserved_bytes=torch.cuda.max_memory_reserved())
-    result.update(videos=videos,return_std=float(__import__('numpy').std([ep['return_'] for ep in episodes])),
-                  goal_progress_mean=sum(ep['goal_progress'] for ep in episodes)/len(episodes),
-                  terminal_success_rate=sum(ep['terminal_success'] for ep in episodes)/len(episodes))
-    result['selection_used']=False if a.heldout else True
-    result['model_sha256']=sha256(a.out/('best-model.pt' if a.heldout else 'evaluation-model.pt'))
-    if a.eval_output.exists(): raise FileExistsError(a.eval_output)
-    atomic_json(a.eval_output,result); env.close()
+            for t in range(env.horizon):
+                started=time.monotonic(); action=agent.act(obs,t0=t==0,eval_mode=True)
+                torch.cuda.synchronize(); planner+=time.monotonic()-started
+                obs,r,term,trunc,info=env.step(action); ret+=float(r); steps+=1; success|=bool(info['success'].item())
+                if video: video.frame(env)
+                if term or trunc: break
+            else: raise AssertionError('evaluation missing episode boundary')
+            if video:
+                video.close(); videos.append(dict(path=str(video.path.resolve()),seed=seed,success=success,return_=ret))
+            env.finish_episode()
+            episodes.append(dict(simulator_worker=env.worker_metrics,seed=seed,length=t+1,return_=ret,success=success,
+                                 terminal_success=bool(info['success'].item()),goal_progress=initial-goal_distance(env),
+                                 final_goal_distance=goal_distance(env),terminated=term,truncated=trunc,
+                                 environment_recreation_seconds=env.last_recreation_seconds))
+        result=dict(status='PASS',episodes=episodes,transitions=steps,updates=0,planner_seconds=planner,
+                    success_rate=sum(e['success'] for e in episodes)/len(episodes),
+                    mean_return=sum(e['return_'] for e in episodes)/len(episodes),
+                    peak_allocated_bytes=torch.cuda.max_memory_allocated(),peak_reserved_bytes=torch.cuda.max_memory_reserved())
+        result.update(videos=videos,return_std=float(__import__('numpy').std([ep['return_'] for ep in episodes])),
+                      goal_progress_mean=sum(ep['goal_progress'] for ep in episodes)/len(episodes),
+                      terminal_success_rate=sum(ep['terminal_success'] for ep in episodes)/len(episodes))
+        result['selection_used']=False if a.heldout else True
+        result['model_sha256']=sha256(a.out/('best-model.pt' if a.heldout else 'evaluation-model.pt'))
+        if a.eval_output.exists(): raise FileExistsError(a.eval_output)
+        atomic_json(a.eval_output,result)
+    finally:
+        env.close()
 
 
 def main():
@@ -104,7 +108,7 @@ def main():
     from tvwm.agents.upstream import load_api,verify_sources
     from tvwm.agents.resume import save_learner,load_learner
     from tvwm.agents.nominal import collect,code_hash,seed_all,empty_replay,atomic_json
-    from tvwm.envs.episode_lifecycle import EpisodeEnvironment as ManiSkillAdapter
+    from tvwm.envs.process_env import EpisodeEnvironment as ManiSkillAdapter
     from tvwm.envs.contracts import compare_recorded_contract
     plan=read(ROOT/'configs/phase1/nominal.json'); evidence=read(a.preflight/'report.json')
     resume=read(a.resume_check/'report.json'); collector=read(a.collector_check/'report.json')
@@ -113,7 +117,7 @@ def main():
     if not evidence['task']==resume['task']==collector['task']: raise ValueError('gate task mismatch')
     if not evidence['checkpoint_sha256']==resume['checkpoint_sha256']==collector['preflight_checkpoint_sha256']==sha256(a.preflight/'learner-envelope.pt'):
         raise ValueError('gate checkpoint mismatch')
-    if collector.get('environment_lifecycle')!='recreate_before_episode_v1': raise ValueError('collector lifecycle evidence required')
+    if collector.get('environment_lifecycle')!='spawn_per_episode_v1': raise ValueError('collector lifecycle evidence required')
     if collector['code_sha256']!=code_hash(): raise ValueError('code/config changed after collector check; rerun check')
     if verify_sources()!=evidence['sources']: raise ValueError('source mismatch')
     if {k:md.version(k) for k in evidence['packages']}!=evidence['packages']: raise ValueError('package mismatch')
@@ -132,9 +136,10 @@ def main():
     cfg=cfg_to_dataclass(OmegaConf.create(values)); seed_all(plan['seed'])
     env=ManiSkillAdapter(evidence['task']); env.reset(seed=1)
     compare_recorded_contract(env.contract,evidence['contract'],list(evidence['contract']))
+    env.close()
     # Constructor/reset happens before RNG restoration. Fresh training never loads smoke weights.
     agent=Agent(cfg); replay=Buffer(cfg)
-    provenance=dict(environment_lifecycle='recreate_before_episode_v1',task=evidence['task'],sources=evidence['sources'],config=vars(cfg),plan=plan,
+    provenance=dict(environment_lifecycle='spawn_per_episode_v1',task=evidence['task'],sources=evidence['sources'],config=vars(cfg),plan=plan,
                     code_sha256=code_hash(),packages=evidence['packages'],dependency_lock_sha256=evidence['dependency_lock_sha256'])
     counters=dict(transitions=0,updates=0,episode_index=0,evaluation_transitions=0,next_validation=0,
                   next_checkpoint=10000,best_score=None,best_model_file=None,best_model_sha256=None,

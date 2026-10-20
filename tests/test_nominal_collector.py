@@ -10,12 +10,16 @@ except ImportError:
 
 @unittest.skipIf(torch is None, 'requires server torch dependencies')
 class CollectorTests(unittest.TestCase):
-    def run_episode(self, start, length, limit=300000):
+    def run_episode(self, start, length, limit=300000, close_failure=False):
         events=[]
         class Env:
             action_dim=8
             def reset(self, seed):
                 self.t=0; return torch.zeros(35),{}
+            def close(self): events.append('discard-close')
+            def finish_episode(self):
+                events.append('close')
+                if close_failure: raise RuntimeError('native worker close failure')
             def step(self, action):
                 self.t+=1; events.append('step')
                 return torch.zeros(35),torch.tensor(1.),False,self.t==length,{'success':torch.tensor(False)}
@@ -46,6 +50,12 @@ class CollectorTests(unittest.TestCase):
         self.assertNotIn('add',events)
         self.assertFalse(r['complete'])
         self.assertEqual(c['episode_index'],0)
+
+    def test_worker_close_failure_never_inserts_replay(self):
+        with patch('tvwm.agents.nominal.append_episode') as insert:
+            with self.assertRaisesRegex(RuntimeError,'native worker close failure'):
+                self.run_episode(0,1,close_failure=True)
+            insert.assert_not_called()
 
     def test_random_episode_no_updates(self):
         events,c,r=self.run_episode(0,50)
