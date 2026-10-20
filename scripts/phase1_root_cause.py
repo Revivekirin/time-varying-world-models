@@ -130,6 +130,7 @@ def worker(a):
         if a.worker=='env-warm':
             history=json.loads(a.warm_history.read_text())
             if history.get('original_recording') is not True: raise ValueError('original recorded warm history required')
+            if history.get('boundary_sha256')!=digest(a.source/'boundary.pt'): raise ValueError('warm history must bind original boundary checkpoint')
             episodes=history['episodes']
             # Original collector performed exactly one warm episode between initial load and boundary.
             if len(episodes)!=1: raise ValueError('expected original single warm episode')
@@ -219,12 +220,14 @@ def main():
     p.add_argument('--source',type=Path,required=True);p.add_argument('--out',type=Path)
     p.add_argument('--warm-history',type=Path)
     p.add_argument('--planner-only',action='store_true')
+    p.add_argument('--warm-comparison-only',action='store_true')
     p.add_argument('--worker',choices=['env-fresh','env-warm','env-probe','planner-ref','planner-child','planner-all-t0'])
     p.add_argument('--destination',type=Path)
     a=p.parse_args()
     if a.worker: worker(a);return
     if a.out is None: p.error('--out required')
     if a.planner_only and a.warm_history: p.error('--planner-only cannot include warm history')
+    if a.warm_comparison_only and (a.planner_only or not a.warm_history): p.error('--warm-comparison-only requires warm history and excludes planner-only')
     a.out.mkdir(parents=True,exist_ok=False)
     required=['reference.pt','child.pt','boundary.pt']
     hashes={name:digest(a.source/name) for name in required}
@@ -235,6 +238,9 @@ def main():
           ('planner-child','planner-child'),('planner-all-t0','planner-t0-a'),('planner-all-t0','planner-t0-b')]
     if a.planner_only: jobs=[job for job in jobs if job[0].startswith('planner')]
     if a.warm_history:jobs.append(('env-warm','env-warm'))
+    if a.warm_comparison_only:
+        jobs=[('env-fresh','env-b'),('env-warm','env-warm')]
+        report['max_simulation_transitions']=150;report['max_planner_calls']=0
     try:
         import torch
         report['worker_errors']={}
@@ -254,6 +260,7 @@ def main():
             report['comparisons']['A1']={'status':'NOT_RERUN','reason':'planner-only; previous environment evidence remains separate'}
         if a.warm_history:pairs.append(('A2','env-warm','env-b'))
         else:report['comparisons']['A2']={'status':'UNRESOLVED','reason':'Original recorded warm episode actions unavailable; no replacement history generated.'}
+        if a.warm_comparison_only: pairs=[pair for pair in pairs if pair[0]=='A2']
         for label,l,r in pairs:
             if l in report['worker_errors'] or r in report['worker_errors']:
                 report['comparisons'][label]={'status':'UNRESOLVED','reason':'worker error; see worker_errors and logs'}

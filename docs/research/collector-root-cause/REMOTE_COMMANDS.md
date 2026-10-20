@@ -68,3 +68,29 @@ timeout --signal=TERM --kill-after=15s 960s \
 Maximum 250 planner calls, zero environment transitions, zero optimizer updates.
 Share the new summary.json; for worker errors share the corresponding worker log.
 Previous A1 evidence stays separate, not relabeled as newly measured.
+
+## Recover recorded warm actions and run A2 only
+
+The original warm actions are potentially recoverable from the final completed
+episode in boundary.pt replay. Do not regenerate them with a planner. Extraction
+fails closed unless the expected checkpoint/episode structure is present.
+
+```bash
+(
+set -e
+timeout --signal=TERM --kill-after=15s 180s \
+  python scripts/phase1_extract_warm_trace.py \
+  --source results/phase1-push-collectorcheck-003 \
+  --out results/phase1-push-warm-extract-001
+timeout --signal=TERM --kill-after=15s 420s \
+  python scripts/phase1_root_cause.py \
+  --source results/phase1-push-collectorcheck-003 \
+  --warm-history results/phase1-push-warm-extract-001/warm-history.json \
+  --warm-comparison-only \
+  --out results/phase1-push-rootcause-a2-001
+)
+```
+
+Maximum 150 environment transitions, zero act calls and zero optimizer updates.
+Share the extraction report.json and A2 summary.json. Warm manifests must now
+also bind boundary_sha256, which the extraction command generates automatically.

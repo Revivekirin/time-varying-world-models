@@ -70,3 +70,28 @@ The checksum now recursively encodes typed metadata and raw tensor bytes, with
 regression tests for torch.Size, real TensorDict state, scalar and bfloat tensors.
 Only diagnostic code changed. --planner-only repeats at most 250 act calls in
 five processes, zero environment transitions and zero updates, with new outputs.
+
+## Planner diagnostic 002: supplied server results
+
+VERIFIED: B1 and B1_all_t0 match exactly at every compared record, with matching
+model checksums and exact restored CPU/CUDA RNG states. No worker errors and
+input hashes unchanged. B2, starting from the same model and restored RNG,
+first differs at observation record 1; actions first exceed tolerance at index 2.
+This supports observation-sequence sensitivity in the tested planner. It does not
+identify the cause of the first physical difference or establish general numerical
+instability. A1 previously passed; A2 remains unmeasured. Readiness remains NO-GO.
+
+Correction to the earlier warm-history limitation: the separate warm trace was
+not saved, but boundary.pt includes the completed warm episode in replay. Its
+original actions may therefore be recoverable without resampling. The new
+phase1_extract_warm_trace.py requires the expected three-episode checkpoint,
+finds the last contiguous episode with its initial placeholder row, validates
+its action data, and writes a new hash-bound warm-history artifact. It never
+steps an environment, calls the planner or updates a model. Extraction is pending
+server validation; no original artifact is modified.
+
+A2-only rerun uses that exact recovered history, not newly sampled actions. It
+performs one fresh target episode and one warm-plus-target sequence, at most 150
+transitions and zero planner/optimizer calls. A2 failure with A1/B1 passing would
+prioritize history-dependent reset/state behavior, not conclusively distinguish
+controller state from hidden simulator state without examining per-field traces.
