@@ -2,11 +2,16 @@
 # Explicitly authorized integrated gates -> sequential nominal runs. No retries.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-workflow=results/phase1-recreate-workflow-001
-push_gate=results/phase1-push-collectorcheck-recreate-001
-pick_gate=results/phase1-pick-collectorcheck-recreate-001
-push_run=results/phase1-push-seed1-recreate-001
-pick_run=results/phase1-pick-seed1-recreate-001
+run_tag=${TVWM_RUN_TAG:-recreate-001}
+if [[ ! "$run_tag" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+  echo 'TVWM_RUN_TAG must contain only letters, digits, underscores or hyphens.' >&2
+  exit 1
+fi
+workflow=results/phase1-workflow-${run_tag}
+push_gate=results/phase1-push-collectorcheck-${run_tag}
+pick_gate=results/phase1-pick-collectorcheck-${run_tag}
+push_run=results/phase1-push-seed1-${run_tag}
+pick_run=results/phase1-pick-seed1-${run_tag}
 for destination in "$workflow" "$push_gate" "$pick_gate" "$push_run" "$pick_run"; do
   if [[ -e "$destination" ]]; then
     echo "Refusing existing output: $destination. No automatic retry or overwrite." >&2
